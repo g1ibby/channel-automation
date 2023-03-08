@@ -36,10 +36,11 @@ python = "^3.9"
 
 typer = {extras = ["all"], version = "^0.4.0"}
 rich = "^10.14.0"
+revchatgpt = "^3.1.6"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.1"
-black = {version = "^21.10b0", allow-prereleases = true}
+black = {version = "^23.1.0", allow-prereleases = true}
 darglint = "^1.8.1"
 isort = {extras = ["colors"], version = "^5.10.1"}
 mypy = "^0.910"
