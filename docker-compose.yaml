@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  news-please:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile-newsplease
+    depends_on:
+      - db
+    volumes:
+      - ./docker/newsplease:/root/news-please-repo
+
+  db:
+    image: postgres:15.2-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: automation
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+volumes:
+  db-data:

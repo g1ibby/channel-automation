@@ -1,0 +1,15 @@
+FROM python:3.9-slim-buster
+
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends \
+  curl \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install news-please --upgrade
+
+COPY ./docker/newsplease.sh /root/newsplease.sh
+RUN chmod +x /root/newsplease.sh
+
+WORKDIR /root
+
+CMD ["/root/newsplease.sh"]
