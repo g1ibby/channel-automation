@@ -1,17 +1,31 @@
 version: '3.8'
 
 services:
-  news-please:
-    build:
-      context: .
-      dockerfile: ./docker/Dockerfile-newsplease
-    depends_on:
-      - db
+
+  elasticsearch:
+    image: "docker.elastic.co/elasticsearch/elasticsearch:7.16.3"
+    environment:
+      - "discovery.type=single-node"
+      - "xpack.security.enabled=true"
+      - "xpack.security.transport.ssl.enabled=true"
+      - "xpack.security.transport.ssl.verification_mode=certificate"
+      - "xpack.security.transport.ssl.keystore.type=PKCS12"
+      - "xpack.security.transport.ssl.truststore.type=PKCS12"
+      - "ELASTIC_PASSWORD=elastic"
+      - "http.cors.enabled=true"
+      - "http.cors.allow-origin=http://localhost:8080"
+      - "http.cors.allow-headers=X-Requested-With,X-Auth-Token,Content-Type,Content-Length,Authorization"
+      - "http.cors.allow-methods=OPTIONS,HEAD,GET,POST,PUT,DELETE"
+      - "http.cors.allow-credentials=true"
+    ports:
+      - "9200:9200"
     volumes:
-      - ./docker/newsplease:/root/news-please-repo
+      - esdata:/usr/share/elasticsearch/data
+    networks:
+      - esnet
 
   db:
-    image: postgres:15.2-alpine
+    image: "postgres:15.2-alpine"
     restart: always
     environment:
       POSTGRES_USER: user
@@ -21,7 +35,10 @@ services:
       - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
-      - ./docker/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
 volumes:
   db-data:
+  esdata:
+
+networks:
+  esnet:

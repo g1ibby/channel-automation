@@ -7,10 +7,17 @@ from random import choice
 import typer
 from revChatGPT.V1 import Chatbot
 from rich.console import Console
+from sqlmodel import Session, SQLModel, create_engine
 
 from channel_automation import version
 from channel_automation.bot import run_bot
+from channel_automation.data_access.elasticsearch.news_article import (
+    ElasticsearchNewsArticleRepository,
+)
+from channel_automation.data_access.postgresql.methods import Repository
 from channel_automation.example import hello
+from channel_automation.models.source import Source
+from channel_automation.services.news_crawler import NewsCrawlerService
 
 
 class Color(str, Enum):
@@ -69,6 +76,57 @@ def main(
 def bot(token: str = typer.Option(..., help="Telegram bot token.")) -> None:
     """Run the bot."""
     run_bot(token)
+
+
+@app.command(name="crawler")
+def crawler() -> None:
+    """Run the crawler."""
+    print("crawler")
+    # Initialize the ElasticsearchNewsArticleRepository with the host and port
+    repository = ElasticsearchNewsArticleRepository(host="localhost", port=9200)
+
+    # Initialize the NewsCrawlerService with the news_article_repository instance
+    news_crawler_service = NewsCrawlerService(news_article_repository=repository)
+
+    # Crawl and extract news articles starting from the main page
+    main_page = "https://www.bangkokpost.com/travel"
+    extracted_articles = news_crawler_service.crawl_and_extract_news_articles(main_page)
+
+    for article in extracted_articles:
+        print(f"Title: {article.title}\nDate: {article.date}\n")
+
+    # Schedule the news crawling to run every 30 minutes
+    news_crawler_service.schedule_news_crawling(interval_minutes=30)
+
+    # To keep the main thread alive, you can use an infinite loop or use an event to wait
+    import time
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Stopping the scheduler...")
+
+
+@app.command(name="test-db")
+def test_db() -> None:
+    """Run the test-db."""
+    print("test-db")
+    DATABASE_URL = "postgresql://user:password@localhost/automation"
+    repository = Repository(DATABASE_URL)
+    # Add a new sources
+    new_source = Source(link="https://example.com")
+    repository.add_source(new_source)
+    new_source2 = Source(link="https://example2.com")
+    repository.add_source(new_source2)
+
+    # Disable a source
+    repository.disable_source(new_source.id)
+
+    # Get all active sources
+    active_sources = repository.get_active_sources()
+    for source in active_sources:
+        print(source.link)
 
 
 @app.command(name="gpt")

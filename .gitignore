@@ -617,4 +617,4 @@ MigrationBackup/
 # End of https://www.gitignore.io/api/osx,python,pycharm,windows,visualstudio,visualstudiocode
 
 docker/newsplease/data/ # NewsPlease data
-docker/newsplease/.resume_jobdir # NewsPlease resume job directory
+docker/newsplease/.resume_jobdir/ # NewsPlease resume job directory
