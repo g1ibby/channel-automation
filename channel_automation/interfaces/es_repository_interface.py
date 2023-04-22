@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from channel_automation.models import NewsArticle
 
 
-class INewsArticleRepository(ABC):
+class IESRepository(ABC):
     @abstractmethod
     def save_news_article(self, news_article: NewsArticle) -> NewsArticle:
         """

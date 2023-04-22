@@ -6,9 +6,7 @@ from dataclasses import fields
 import trafilatura
 from trafilatura.spider import focused_crawler
 
-from channel_automation.data_access.elasticsearch.news_article import (
-    ElasticsearchNewsArticleRepository,
-)
+from channel_automation.data_access.elasticsearch.methods import ESRepository
 from channel_automation.interfaces.news_crawler_service_interface import (
     INewsCrawlerService,
 )
@@ -24,7 +22,7 @@ def news_article_from_json(json_data: dict[str, Any]) -> NewsArticle:
 
 
 class NewsCrawlerService(INewsCrawlerService):
-    def __init__(self, news_article_repository: ElasticsearchNewsArticleRepository):
+    def __init__(self, news_article_repository: ESRepository):
         self.news_article_repository = news_article_repository
 
     def crawl_and_extract_news_articles(self, main_page: str) -> list[NewsArticle]:

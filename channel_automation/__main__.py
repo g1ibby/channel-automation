@@ -1,6 +1,7 @@
 # type: ignore[attr-defined]
 from typing import Optional
 
+import asyncio
 from enum import Enum
 from random import choice
 
@@ -11,12 +12,11 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from channel_automation import version
 from channel_automation.bot import run_bot
-from channel_automation.data_access.elasticsearch.news_article import (
-    ElasticsearchNewsArticleRepository,
-)
+from channel_automation.data_access.elasticsearch.methods import ESRepository
 from channel_automation.data_access.postgresql.methods import Repository
 from channel_automation.example import hello
 from channel_automation.models.source import Source
+from channel_automation.services.bot import TelegramBotService
 from channel_automation.services.news_crawler import NewsCrawlerService
 
 
@@ -78,12 +78,27 @@ def bot(token: str = typer.Option(..., help="Telegram bot token.")) -> None:
     run_bot(token)
 
 
+@app.command(name="bot2")
+def bot2() -> None:
+    """Run the bot."""
+    TELEGRAM_BOT_TOKEN = "2039441709:AAFlyagf7AIMtZ0WuHJ0FjLwxn85-4r5HP0"
+    ADMIN_CHAT_ID = "1672563160"
+    DATABASE_URL = "postgresql://user:password@localhost/automation"
+
+    repository = Repository(DATABASE_URL)
+    telegram_bot_service = TelegramBotService(
+        TELEGRAM_BOT_TOKEN, ADMIN_CHAT_ID, repository
+    )
+
+    telegram_bot_service.run()
+
+
 @app.command(name="crawler")
 def crawler() -> None:
     """Run the crawler."""
     print("crawler")
     # Initialize the ElasticsearchNewsArticleRepository with the host and port
-    repository = ElasticsearchNewsArticleRepository(host="localhost", port=9200)
+    repository = ESRepository(host="localhost", port=9200)
 
     # Initialize the NewsCrawlerService with the news_article_repository instance
     news_crawler_service = NewsCrawlerService(news_article_repository=repository)

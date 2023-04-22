@@ -2,11 +2,11 @@ from typing import Any, Dict, List, Optional
 
 from elasticsearch import Elasticsearch
 
-from channel_automation.interfaces.es_repository_interface import INewsArticleRepository
+from channel_automation.interfaces.es_repository_interface import IESRepository
 from channel_automation.models import NewsArticle
 
 
-class ElasticsearchNewsArticleRepository(INewsArticleRepository):
+class ESRepository(IESRepository):
     def __init__(self, host: str, port: int):
         self.es = self.init_elasticsearch(host, port)
         self.index = "news"
