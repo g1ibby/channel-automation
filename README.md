@@ -23,6 +23,11 @@ alembic revision --autogenerate -m "Remove name field from Source model"
 alembic upgrade head
 ```
 
+## How to open elasticsearch viewer 
+```bash
+docker run -p 8080:8080 cars10/elasticvue
+```
+
 ## Very first steps
 
 ### Initialize your code

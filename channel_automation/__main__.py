@@ -11,6 +11,7 @@ from rich.console import Console
 from sqlmodel import Session, SQLModel, create_engine
 
 from channel_automation import version
+from channel_automation.assistant.methods import Assistant
 from channel_automation.bot import run_bot
 from channel_automation.data_access.elasticsearch.methods import ESRepository
 from channel_automation.data_access.postgresql.methods import Repository
@@ -158,6 +159,18 @@ def gpt() -> None:
         response = data["message"]
 
     print(response)
+
+
+@app.command(name="gpt2")
+def gpt2() -> None:
+    print("gpt2")
+    assist = Assistant("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")
+    repository = ESRepository(host="localhost", port=9200)
+    news = repository.get_latest_news(1)
+    print(news[0].text)
+    res_news = assist.process_and_translate_article(news[0])
+    print(res_news.russian_abstract)
+    repository.update_news_article(res_news)
 
 
 if __name__ == "__main__":

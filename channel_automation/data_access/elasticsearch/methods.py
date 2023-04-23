@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from elasticsearch import Elasticsearch
 
@@ -59,3 +59,31 @@ class ESRepository(IESRepository):
         ]
 
         return articles
+
+    def update_news_article(self, news_article: NewsArticle) -> NewsArticle:
+        doc_id = news_article.id
+        document = news_article.__dict__
+        self.update_document(doc_id, document)
+        return news_article
+
+    def update_document(
+        self, doc_id: str, document: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
+        try:
+            response = self.es.update(
+                index=self.index, id=doc_id, body={"doc": document}
+            )
+            return response
+        except Exception as e:
+            print(f"Error updating document: {e}")
+            return None
+
+    def get_news_article_by_id(self, article_id: str) -> Optional[NewsArticle]:
+        try:
+            response = self.es.get(index=self.index, id=article_id)
+            if response["found"]:
+                return NewsArticle(**response["_source"])
+        except Exception as e:
+            print(f"Error retrieving document by ID: {e}")
+
+        return None

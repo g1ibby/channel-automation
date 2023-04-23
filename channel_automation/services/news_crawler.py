@@ -53,6 +53,8 @@ class NewsCrawlerService(INewsCrawlerService):
                 downloaded,
                 include_comments=False,
                 with_metadata=True,
+                favor_precision=True,
+                deduplicate=True,
                 output_format="json",
             )
             if extracted_data is not None:
