@@ -54,9 +54,12 @@ class ESRepository(IESRepository):
             sort=[{"date": {"order": "desc"}}],
         )
 
-        articles = [
-            NewsArticle(**hit["_source"]) for hit in search_results["hits"]["hits"]
-        ]
+        articles = []
+        for hit in search_results["hits"]["hits"]:
+            source = hit["_source"]
+            source["id"] = hit["_id"]
+            article = NewsArticle(**source)
+            articles.append(article)
 
         return articles
 
@@ -82,7 +85,9 @@ class ESRepository(IESRepository):
         try:
             response = self.es.get(index=self.index, id=article_id)
             if response["found"]:
-                return NewsArticle(**response["_source"])
+                article_data = response["_source"]
+                article_data["id"] = response["_id"]
+                return NewsArticle(**article_data)
         except Exception as e:
             print(f"Error retrieving document by ID: {e}")
 

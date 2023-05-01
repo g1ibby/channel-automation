@@ -20,6 +20,7 @@ channel-automation is tool to atomate telegram channels
 ## Database migrations
 ```bash
 alembic revision --autogenerate -m "Remove name field from Source model"
+python -m alembic revision --autogenerate -m "Add new ChannelInfo model"
 alembic upgrade head
 ```
 

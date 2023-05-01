@@ -5,6 +5,7 @@ from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
 from alembic import context
+from channel_automation.models.channel import ChannelInfo
 from channel_automation.models.source import Source
 
 # this is the Alembic Config object, which provides

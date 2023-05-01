@@ -2,6 +2,7 @@ from typing import List
 
 from abc import ABC, abstractmethod
 
+from channel_automation.models import ChannelInfo
 from channel_automation.models.source import Source
 
 
@@ -36,5 +37,38 @@ class IRepository(ABC):
 
         Returns:
             List[Source]: A list of active sources.
+        """
+        pass
+
+    @abstractmethod
+    def add_channel(self, channel: ChannelInfo) -> ChannelInfo:
+        """
+        Add or update a channel in the repository.
+
+        Args:
+            channel (ChannelInfo): The channel to add or update.
+
+        Returns:
+            ChannelInfo: The added or updated channel.
+        """
+        pass
+
+    @abstractmethod
+    def remove_channel(self, channel_id: str) -> None:
+        """
+        Remove a channel from the repository.
+
+        Args:
+            channel_id (str): The ID of the channel to remove.
+        """
+        pass
+
+    @abstractmethod
+    def get_all_channels(self) -> list[ChannelInfo]:
+        """
+        Get all channels in the repository.
+
+        Returns:
+            List[ChannelInfo]: A list of all channels.
         """
         pass

@@ -16,6 +16,7 @@ from channel_automation.bot import run_bot
 from channel_automation.data_access.elasticsearch.methods import ESRepository
 from channel_automation.data_access.postgresql.methods import Repository
 from channel_automation.example import hello
+from channel_automation.models import ChannelInfo
 from channel_automation.models.source import Source
 from channel_automation.services.bot import TelegramBotService
 from channel_automation.services.news_crawler import NewsCrawlerService
@@ -87,8 +88,10 @@ def bot2() -> None:
     DATABASE_URL = "postgresql://user:password@localhost/automation"
 
     repository = Repository(DATABASE_URL)
+    es_repo = ESRepository(host="localhost", port=9200)
+    assistant = Assistant("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")
     telegram_bot_service = TelegramBotService(
-        TELEGRAM_BOT_TOKEN, ADMIN_CHAT_ID, repository
+        TELEGRAM_BOT_TOKEN, ADMIN_CHAT_ID, repository, es_repo, assistant
     )
 
     telegram_bot_service.run()
@@ -122,6 +125,34 @@ def crawler() -> None:
             time.sleep(1)
     except KeyboardInterrupt:
         print("Stopping the scheduler...")
+
+
+@app.command(name="test-db-2")
+def test_db_two() -> None:
+    """Run the test-db."""
+    print("test-db")
+    DATABASE_URL = "postgresql://user:password@localhost/automation"
+    repo = Repository(DATABASE_URL)
+
+    # Add or update a channel
+    channel_to_add = ChannelInfo(id="-100123456789", title="Sample Channel")
+    added_channel = repo.add_channel(channel_to_add)
+    print(f"Added channel: {added_channel}")
+
+    channel_to_add = ChannelInfo(id="-100123456799", title="Sample Channel 2")
+    added_channel = repo.add_channel(channel_to_add)
+    print(f"Added channel: {added_channel}")
+
+    # Remove a channel by its ID
+    channel_id_to_remove = "-100123456789"
+    repo.remove_channel(channel_id_to_remove)
+    print(f"Removed channel with ID: {channel_id_to_remove}")
+
+    # Get all channels
+    all_channels = repo.get_all_channels()
+    print("All channels:")
+    for channel in all_channels:
+        print(channel)
 
 
 @app.command(name="test-db")

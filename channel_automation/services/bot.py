@@ -1,24 +1,267 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import (
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    ChatMemberHandler,
+    CommandHandler,
+    ContextTypes,
+)
 
+from channel_automation.interfaces.assistant_interface import IAssistant
 from channel_automation.interfaces.bot_service_interface import ITelegramBotService
+from channel_automation.interfaces.es_repository_interface import IESRepository
 from channel_automation.interfaces.pg_repository_interface import IRepository
-from channel_automation.models import NewsArticle, Source
+from channel_automation.models import ChannelInfo, NewsArticle, Source
 
 
 class TelegramBotService(ITelegramBotService):
-    def __init__(self, token: str, admin_chat_id: str, repository: IRepository):
+    def __init__(
+        self,
+        token: str,
+        admin_chat_id: str,
+        repository: IRepository,
+        es_repo: IESRepository,
+        assistant: IAssistant,
+    ):
         self.token = token
         self.admin_chat_id = admin_chat_id
-        self.repository = repository
+        self.repo = repository
+        self.es_repo = es_repo
+        self.assistant = assistant
 
     def run(self) -> None:
         app = ApplicationBuilder().token(self.token).build()
+        app.add_handler(ChatMemberHandler(self.on_my_chat_member))
         app.add_handler(CommandHandler("addsource", self.add_source))
         app.add_handler(CommandHandler("disablesource", self.disable_source))
         app.add_handler(CommandHandler("activesources", self.get_active_sources))
         app.add_handler(CommandHandler("myid", self.get_user_id))
+        app.add_handler(CommandHandler("latestnews", self.get_latest_news))
+        app.add_handler(
+            CallbackQueryHandler(self.generate_post_callback, pattern="^generate_post:")
+        )
+        app.add_handler(
+            CallbackQueryHandler(self.regenerate_callback, pattern="^regenerate:")
+        )
+        app.add_handler(
+            CallbackQueryHandler(self.publish_callback, pattern="^publish:")
+        )
+        app.add_handler(
+            CallbackQueryHandler(
+                self.publish_to_channel_callback, pattern="^publish_to_channel:"
+            )
+        )
+        app.add_handler(CallbackQueryHandler(self.back_callback, pattern="^back:"))
+        app.add_handler(CommandHandler("channels", self.show_channels))
+
         app.run_polling()
+
+    async def show_channels(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        channels = self.repo.get_all_channels()
+
+        if not channels:
+            response = "No channels available."
+        else:
+            response = "Available channels:\n"
+            for channel in channels:
+                response += f"{channel.title} (ID: {channel.id})\n"
+
+        await update.message.reply_text(response)
+
+    # Define a function to handle the ChatMemberUpdated event
+    async def on_my_chat_member(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        bot = Bot(token=self.token)
+        my_chat_member = update.my_chat_member
+        new_chat_member = my_chat_member.new_chat_member
+
+        if (
+            new_chat_member.user.id == context.bot.id
+            and new_chat_member.status == "administrator"
+        ):
+            # Save the channel to the database
+            channel = ChannelInfo(
+                id=str(my_chat_member.chat.id), title=my_chat_member.chat.title
+            )
+            self.repo.add_channel(channel)
+
+            await bot.send_message(
+                chat_id=self.admin_chat_id,
+                text=f"I've been added as an admin in the channel: {update.my_chat_member.chat.title}!",
+            )
+
+    async def process_article_and_send(self, query, article_id: str) -> None:
+        news_article = self.es_repo.get_news_article_by_id(article_id)
+        if news_article:
+            processing_message = await query.message.reply_text(
+                "Processing the article, this may take up to a minute..."
+            )
+            processed_article = self.assistant.process_and_translate_article(
+                news_article
+            )
+            self.es_repo.update_news_article(processed_article)
+
+            await processing_message.edit_text(
+                "Processing complete! Here's the generated post:"
+            )
+
+            keyboard = InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton(
+                            "Regenerate", callback_data=f"regenerate:{article_id}"
+                        )
+                    ],
+                    [
+                        InlineKeyboardButton(
+                            "Publish", callback_data=f"publish:{article_id}"
+                        )
+                    ],
+                ]
+            )
+
+            await query.message.reply_text(
+                f"{processed_article.russian_abstract}",
+                parse_mode="Markdown",
+                reply_markup=keyboard,
+            )
+        else:
+            await query.message.reply_text("Article not found.")
+
+    async def regenerate_callback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        query = update.callback_query
+        _, article_id = query.data.split(":", 1)
+
+        await self.process_article_and_send(query, article_id)
+
+        await query.answer(text=f"Regenerating post for article ID: {article_id}")
+
+    async def generate_post_callback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        query = update.callback_query
+        _, article_id = query.data.split(":", 1)
+
+        await self.process_article_and_send(query, article_id)
+
+        await query.answer(text=f"Generating post for article ID: {article_id}")
+
+    async def publish_callback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        query = update.callback_query
+        _, article_id = query.data.split(":", 1)
+
+        # Get all available channels from the database
+        channels = self.repo.get_all_channels()
+
+        # Create inline buttons for each channel
+        channel_buttons = [
+            InlineKeyboardButton(
+                channel.title,
+                callback_data=f"publish_to_channel:{article_id}:{channel.id}",
+            )
+            for channel in channels
+        ]
+
+        # Add a 'Back' button
+        back_button = InlineKeyboardButton("Back", callback_data=f"back:{article_id}")
+
+        # Update the inline keyboard markup
+        keyboard = InlineKeyboardMarkup([channel_buttons, [back_button]])
+
+        await query.edit_message_reply_markup(reply_markup=keyboard)
+
+    async def publish_to_channel_callback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        query = update.callback_query
+        _, article_id, channel_id = query.data.split(":", 2)
+
+        # Retrieve the article by ID
+        article = self.es_repo.get_news_article_by_id(article_id)
+
+        # Publish the article in the specified channel
+        bot = Bot(token=self.token)
+        await bot.send_message(
+            chat_id=channel_id,
+            text=f"{article.russian_abstract}",
+            parse_mode="Markdown",
+        )
+
+        # Create the original inline keyboard markup with "Regenerate" and "Publish" buttons
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        "Regenerate", callback_data=f"regenerate:{article_id}"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "Publish", callback_data=f"publish:{article_id}"
+                    )
+                ],
+            ]
+        )
+
+        # Update the inline keyboard markup of the message
+        await query.edit_message_reply_markup(reply_markup=keyboard)
+
+        await query.answer(
+            text=f"Published post for article ID: {article_id} in channel ID: {channel_id}"
+        )
+
+    async def back_callback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        query = update.callback_query
+        _, article_id = query.data.split(":", 1)
+
+        # Create the original inline keyboard markup
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        "Regenerate", callback_data=f"regenerate:{article_id}"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "Publish", callback_data=f"publish:{article_id}"
+                    )
+                ],
+            ]
+        )
+
+        await query.edit_message_reply_markup(reply_markup=keyboard)
+
+    async def get_latest_news(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        latest_articles = self.es_repo.get_latest_news(5)
+
+        for article in latest_articles:
+            keyboard = InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton(
+                            "Generate post", callback_data=f"generate_post:{article.id}"
+                        )
+                    ],
+                ]
+            )
+
+            await update.message.reply_text(
+                f"*{article.title}*\n[Read article]({article.source})",
+                reply_markup=keyboard,
+                parse_mode="Markdown",
+            )
 
     async def get_user_id(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -27,10 +270,10 @@ class TelegramBotService(ITelegramBotService):
         await update.message.reply_text(f"Your user ID is: {user_id}")
 
     async def send_article_to_admin(self, article: NewsArticle) -> None:
-        app = ApplicationBuilder().token(self.token).build()
-        await app.send_message(
+        bot = Bot(token=self.token)
+        await bot.send_message(
             chat_id=self.admin_chat_id,
-            text=f"*{article.title}*\n{article.link}",
+            text=f"*{article.title}*\n{article.source}",
         )
 
     async def add_source(
@@ -38,14 +281,14 @@ class TelegramBotService(ITelegramBotService):
     ) -> None:
         link = " ".join(context.args)
         source = Source(link=link, is_active=True)
-        self.repository.add_source(source)
+        self.repo.add_source(source)
         await update.message.reply_text(f"Source added: {link}")
 
     async def disable_source(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
         link = " ".join(context.args)
-        source = self.repository.disable_source(link)
+        source = self.repo.disable_source(link)
         if source:
             await update.message.reply_text(f"Source disabled: {link}")
         else:
@@ -54,6 +297,6 @@ class TelegramBotService(ITelegramBotService):
     async def get_active_sources(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
-        active_sources = self.repository.get_active_sources()
+        active_sources = self.repo.get_active_sources()
         response = "\n".join([source.link for source in active_sources])
         await update.message.reply_text(response)

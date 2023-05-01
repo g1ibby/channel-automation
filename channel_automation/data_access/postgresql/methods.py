@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from sqlmodel import Session, create_engine
 
 from channel_automation.interfaces.pg_repository_interface import IRepository
+from channel_automation.models import ChannelInfo
 from channel_automation.models.source import Source
 
 
@@ -45,3 +46,35 @@ class Repository(IRepository):
     def get_active_sources(self) -> list[Source]:
         with self._get_session() as session:
             return session.query(Source).filter(Source.is_active == True).all()
+
+    def add_channel(self, channel: ChannelInfo) -> ChannelInfo:
+        with self._get_session() as session:
+            existing_channel = (
+                session.query(ChannelInfo)
+                .filter(ChannelInfo.id == channel.id)
+                .one_or_none()
+            )
+            if existing_channel:
+                existing_channel.title = channel.title
+            else:
+                session.add(channel)
+                existing_channel = channel
+
+            session.commit()
+            session.refresh(existing_channel)
+            return existing_channel
+
+    def remove_channel(self, channel_id: str) -> None:
+        with self._get_session() as session:
+            channel = (
+                session.query(ChannelInfo)
+                .filter(ChannelInfo.id == channel_id)
+                .one_or_none()
+            )
+            if channel:
+                session.delete(channel)
+                session.commit()
+
+    def get_all_channels(self) -> list[ChannelInfo]:
+        with self._get_session() as session:
+            return session.query(ChannelInfo).all()
