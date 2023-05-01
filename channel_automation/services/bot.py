@@ -1,6 +1,12 @@
 from typing import List
 
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import (
+    Bot,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto,
+    Update,
+)
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -58,17 +64,26 @@ class TelegramBotService(ITelegramBotService):
             )
         )
         app.add_handler(CallbackQueryHandler(self.back_callback, pattern="^back:"))
+        app.add_handler(
+            CallbackQueryHandler(self.next_image_handler, pattern="^next_image:")
+        )
 
         app.run_polling()
 
     @staticmethod
-    def create_original_keyboard(article_id: str) -> InlineKeyboardMarkup:
+    def create_original_keyboard(
+        article_id: str, current_image_index: int = 0
+    ) -> InlineKeyboardMarkup:
         return InlineKeyboardMarkup(
             [
                 [
                     InlineKeyboardButton(
                         "Regenerate", callback_data=f"regenerate:{article_id}"
-                    )
+                    ),
+                    InlineKeyboardButton(
+                        "Next image",
+                        callback_data=f"next_image:{article_id}:{current_image_index}",
+                    ),
                 ],
                 [
                     InlineKeyboardButton(
@@ -142,32 +157,18 @@ class TelegramBotService(ITelegramBotService):
             processed_article = self.assistant.process_and_translate_article(
                 news_article
             )
+            images = self.search.search_images(processed_article.images_search, 25)
+            processed_article.images_url = images
             self.es_repo.update_news_article(processed_article)
-
-            images = self.search.search_images(processed_article.images_search, 5)
 
             await processing_message.edit_text(
                 "Processing complete! Here's the generated post:"
             )
-
-            keyboard = InlineKeyboardMarkup(
-                [
-                    [
-                        InlineKeyboardButton(
-                            "Regenerate", callback_data=f"regenerate:{article_id}"
-                        )
-                    ],
-                    [
-                        InlineKeyboardButton(
-                            "Publish", callback_data=f"publish:{article_id}"
-                        )
-                    ],
-                ]
-            )
+            keyboard = self.create_original_keyboard(article_id, current_image_index=0)
 
             # Send the post with the first image from Google search
-            if images:
-                first_image_url = images[0]
+            if processed_article.images_url:
+                first_image_url = processed_article.images_url[0]
                 await query.message.reply_photo(
                     photo=first_image_url,
                     caption=f"{processed_article.russian_abstract}",
@@ -181,9 +182,7 @@ class TelegramBotService(ITelegramBotService):
                     parse_mode="Markdown",
                     reply_markup=keyboard,
                 )
-            await query.message.reply_text(
-                processed_article.images_search
-            )  # TODO: remove this line
+            await query.message.reply_text(processed_article.images_search)
         else:
             await query.message.reply_text("Article not found.")
 
@@ -212,6 +211,8 @@ class TelegramBotService(ITelegramBotService):
     ) -> None:
         query = update.callback_query
         _, article_id = query.data.split(":", 1)
+        # content_markdown
+        # effective_attachment
 
         # Get all available channels from the database
         channels = self.repo.get_all_channels()
@@ -227,16 +228,29 @@ class TelegramBotService(ITelegramBotService):
         query = update.callback_query
         _, article_id, channel_id = query.data.split(":", 2)
 
-        # Retrieve the article by ID
-        article = self.es_repo.get_news_article_by_id(article_id)
+        # Retrieve the image URL and caption from the message
+        message = query.message
+        if message.photo:
+            image_url = message.photo[-1].file_id
+        else:
+            image_url = None
+        caption = message.caption_markdown
 
         # Publish the article in the specified channel
         bot = Bot(token=self.token)
-        await bot.send_message(
-            chat_id=channel_id,
-            text=f"{article.russian_abstract}",
-            parse_mode="Markdown",
-        )
+        if image_url:
+            await bot.send_photo(
+                chat_id=channel_id,
+                photo=image_url,
+                caption=caption,
+                parse_mode="Markdown",
+            )
+        else:
+            await bot.send_message(
+                chat_id=channel_id,
+                text=caption,
+                parse_mode="Markdown",
+            )
 
         # Update the inline keyboard markup using the new create_original_keyboard function
         keyboard = self.create_original_keyboard(article_id)
@@ -279,6 +293,31 @@ class TelegramBotService(ITelegramBotService):
                 self.format_latest_news_article(article),
                 reply_markup=keyboard,
                 parse_mode="Markdown",
+            )
+
+    async def next_image_handler(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        query = update.callback_query
+        _, article_id, current_image_index = query.data.split(":", 2)
+
+        news_article = self.es_repo.get_news_article_by_id(article_id)
+        if news_article and news_article.images_url:
+            new_image_index = (int(current_image_index) + 1) % len(
+                news_article.images_url
+            )
+            new_image_url = news_article.images_url[new_image_index]
+
+            keyboard = self.create_original_keyboard(
+                article_id, current_image_index=new_image_index
+            )
+
+            # Send a new message with the updated image and caption
+            await query.message.reply_photo(
+                photo=new_image_url,
+                caption=f"{news_article.russian_abstract}",
+                parse_mode="Markdown",
+                reply_markup=keyboard,
             )
 
     async def get_user_id(

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from dataclasses import dataclass, field
 
@@ -23,3 +23,4 @@ class NewsArticle:
     excerpt: str
     russian_abstract: Optional[str] = None
     images_search: Optional[str] = None
+    images_url: list[str] = None
