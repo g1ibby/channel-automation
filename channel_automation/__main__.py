@@ -1,5 +1,5 @@
 # type: ignore[attr-defined]
-from typing import Optional
+from typing import List, Optional
 
 import asyncio
 from enum import Enum
@@ -18,6 +18,7 @@ from channel_automation.data_access.postgresql.methods import Repository
 from channel_automation.example import hello
 from channel_automation.models import ChannelInfo
 from channel_automation.models.source import Source
+from channel_automation.search.images import GoogleImageSearch
 from channel_automation.services.bot import TelegramBotService
 from channel_automation.services.news_crawler import NewsCrawlerService
 
@@ -83,6 +84,7 @@ def bot(token: str = typer.Option(..., help="Telegram bot token.")) -> None:
 @app.command(name="bot2")
 def bot2() -> None:
     """Run the bot."""
+    SERP_API_KEY = "ed694bfc6af60767a2f7cb3345477c22effca088fb2a795450e86b2f16abc354"
     TELEGRAM_BOT_TOKEN = "2039441709:AAFlyagf7AIMtZ0WuHJ0FjLwxn85-4r5HP0"
     ADMIN_CHAT_ID = "1672563160"
     DATABASE_URL = "postgresql://user:password@localhost/automation"
@@ -90,8 +92,9 @@ def bot2() -> None:
     repository = Repository(DATABASE_URL)
     es_repo = ESRepository(host="localhost", port=9200)
     assistant = Assistant("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")
+    image_search = GoogleImageSearch(api_key=SERP_API_KEY)
     telegram_bot_service = TelegramBotService(
-        TELEGRAM_BOT_TOKEN, ADMIN_CHAT_ID, repository, es_repo, assistant
+        TELEGRAM_BOT_TOKEN, ADMIN_CHAT_ID, repository, es_repo, assistant, image_search
     )
 
     telegram_bot_service.run()
@@ -202,6 +205,22 @@ def gpt2() -> None:
     res_news = assist.process_and_translate_article(news[0])
     print(res_news.russian_abstract)
     repository.update_news_article(res_news)
+
+
+@app.command(name="img")
+def img() -> None:
+    API_KEY = "ed694bfc6af60767a2f7cb3345477c22effca088fb2a795450e86b2f16abc354"
+    image_search = GoogleImageSearch(api_key=API_KEY)
+    # Define a search query and the number of images you want to retrieve
+    search_query = "beautiful landscape"
+    num_images = 5
+
+    # Use the search_images method to search for images
+    image_urls = image_search.search_images(query=search_query, num_images=num_images)
+
+    # Print the retrieved image URLs
+    for i, url in enumerate(image_urls):
+        print(f"Image {i + 1}: {url}")
 
 
 if __name__ == "__main__":

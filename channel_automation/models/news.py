@@ -22,3 +22,4 @@ class NewsArticle:
     source_hostname: str = field(metadata={"json_key": "source-hostname"})
     excerpt: str
     russian_abstract: Optional[str] = None
+    images_search: Optional[str] = None
