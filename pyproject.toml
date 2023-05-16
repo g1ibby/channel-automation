@@ -42,7 +42,7 @@ apscheduler = "^3.10.1"
 trafilatura = "^1.5.0"
 sqlmodel = "^0.0.8"
 psycopg2-binary = "^2.9.6"
-alembic = "^1.10.3"
+alembic = "^1.11.0"
 openai = "^0.27.4"
 google-search-results = "^2.4.2"
 
