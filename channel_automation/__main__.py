@@ -18,7 +18,7 @@ from channel_automation.data_access.postgresql.methods import Repository
 from channel_automation.example import hello
 from channel_automation.models import ChannelInfo
 from channel_automation.models.source import Source
-from channel_automation.search.images import GoogleImageSearch
+from channel_automation.search.images import BingImageSearch, GoogleImageSearch
 from channel_automation.services.bot import TelegramBotService
 from channel_automation.services.news_crawler import NewsCrawlerService
 
@@ -92,7 +92,7 @@ def bot2() -> None:
     repository = Repository(DATABASE_URL)
     es_repo = ESRepository(host="localhost", port=9200)
     assistant = Assistant("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")
-    image_search = GoogleImageSearch(api_key=SERP_API_KEY)
+    image_search = BingImageSearch()
     telegram_bot_service = TelegramBotService(
         TELEGRAM_BOT_TOKEN, ADMIN_CHAT_ID, repository, es_repo, assistant, image_search
     )

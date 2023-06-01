@@ -13,7 +13,9 @@ from telegram.ext import (
     ChatMemberHandler,
     CommandHandler,
     ContextTypes,
+    MessageHandler,
 )
+from telegram.ext.filters import BaseFilter
 
 from channel_automation.interfaces.assistant_interface import IAssistant
 from channel_automation.interfaces.bot_service_interface import ITelegramBotService
@@ -21,6 +23,11 @@ from channel_automation.interfaces.es_repository_interface import IESRepository
 from channel_automation.interfaces.pg_repository_interface import IRepository
 from channel_automation.interfaces.search_interface import IImageSearch
 from channel_automation.models import ChannelInfo, NewsArticle, Source
+
+
+class PhotoReplyFilter(BaseFilter):
+    def filter(self, message):
+        return message.photo is not None and message.reply_to_message is not None
 
 
 class TelegramBotService(ITelegramBotService):
@@ -67,13 +74,16 @@ class TelegramBotService(ITelegramBotService):
         app.add_handler(
             CallbackQueryHandler(self.next_image_handler, pattern="^next_image:")
         )
+        # app.add_handler(MessageHandler(Filters.reply, self.handle_reply))
+        app.add_handler(MessageHandler(PhotoReplyFilter(), self.handle_photo_reply))
 
         app.run_polling()
 
     @staticmethod
     def create_original_keyboard(
-        article_id: str, current_image_index: int = 0
+        article_id: str, search_terms: str
     ) -> InlineKeyboardMarkup:
+        google_search_url = f"https://www.google.com/search?tbm=isch&q={search_terms}"
         return InlineKeyboardMarkup(
             [
                 [
@@ -81,8 +91,8 @@ class TelegramBotService(ITelegramBotService):
                         "Regenerate", callback_data=f"regenerate:{article_id}"
                     ),
                     InlineKeyboardButton(
-                        "Next image",
-                        callback_data=f"next_image:{article_id}:{current_image_index}",
+                        "Search image",
+                        url=google_search_url,
                     ),
                 ],
                 [
@@ -110,6 +120,32 @@ class TelegramBotService(ITelegramBotService):
     @staticmethod
     def format_latest_news_article(article: NewsArticle) -> str:
         return f"*{article.title}*\n[Read article]({article.source})"
+
+    async def handle_photo_reply(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        message = update.message
+        if message.reply_to_message.from_user.id == context.bot.id:
+            # Get the photo file
+            photo_file = message.photo[-1]  # use the highest resolution photo
+            file_id = photo_file.file_id
+
+            # Retrieve stored article_id and images_search
+            data = context.chat_data.get(message.reply_to_message.message_id)
+            if data:
+                article_id = data.get("article_id")
+                images_search = data.get("images_search")
+
+                # Create keyboard for new message
+                keyboard = self.create_original_keyboard(article_id, images_search)
+
+                # Send a new message with the new photo
+                await context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
+                    photo=file_id,
+                    caption=message.reply_to_message.caption,
+                    reply_markup=keyboard,
+                )
 
     async def show_channels(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -148,7 +184,9 @@ class TelegramBotService(ITelegramBotService):
                 text=f"I've been added as an admin in the channel: {update.my_chat_member.chat.title}!",
             )
 
-    async def process_article_and_send(self, query, article_id: str) -> None:
+    async def process_article_and_send(
+        self, context: ContextTypes.DEFAULT_TYPE, query, article_id: str
+    ) -> None:
         news_article = self.es_repo.get_news_article_by_id(article_id)
         if news_article:
             processing_message = await query.message.reply_text(
@@ -164,12 +202,15 @@ class TelegramBotService(ITelegramBotService):
             await processing_message.edit_text(
                 "Processing complete! Here's the generated post:"
             )
-            keyboard = self.create_original_keyboard(article_id, current_image_index=0)
+            keyboard = self.create_original_keyboard(
+                article_id, processed_article.images_search
+            )
 
+            sent_message = None
             # Send the post with the first image from Google search
             if processed_article.images_url:
                 first_image_url = processed_article.images_url[0]
-                await query.message.reply_photo(
+                sent_message = await query.message.reply_photo(
                     photo=first_image_url,
                     caption=f"{processed_article.russian_abstract}",
                     parse_mode="Markdown",
@@ -177,12 +218,16 @@ class TelegramBotService(ITelegramBotService):
                 )
             # If no images found, send the post without an image
             else:
-                await query.message.reply_text(
+                sent_message = await query.message.reply_text(
                     f"{processed_article.russian_abstract}",
                     parse_mode="Markdown",
                     reply_markup=keyboard,
                 )
-            await query.message.reply_text(processed_article.images_search)
+            # Store the article_id and images_search term with the sent message's id
+            context.chat_data[sent_message.message_id] = {
+                "article_id": article_id,
+                "images_search": processed_article.images_search,
+            }
         else:
             await query.message.reply_text("Article not found.")
 
@@ -192,7 +237,7 @@ class TelegramBotService(ITelegramBotService):
         query = update.callback_query
         _, article_id = query.data.split(":", 1)
 
-        await self.process_article_and_send(query, article_id)
+        await self.process_article_and_send(context, query, article_id)
 
         await query.answer(text=f"Regenerating post for article ID: {article_id}")
 
@@ -202,7 +247,7 @@ class TelegramBotService(ITelegramBotService):
         query = update.callback_query
         _, article_id = query.data.split(":", 1)
 
-        await self.process_article_and_send(query, article_id)
+        await self.process_article_and_send(context, query, article_id)
 
         await query.answer(text=f"Generating post for article ID: {article_id}")
 
@@ -253,7 +298,7 @@ class TelegramBotService(ITelegramBotService):
             )
 
         # Update the inline keyboard markup using the new create_original_keyboard function
-        keyboard = self.create_original_keyboard(article_id)
+        keyboard = self.create_original_keyboard(article_id, "")
 
         # Update the inline keyboard markup of the message
         await query.edit_message_reply_markup(reply_markup=keyboard)
@@ -269,7 +314,7 @@ class TelegramBotService(ITelegramBotService):
         _, article_id = query.data.split(":", 1)
 
         # Update the inline keyboard markup using the new create_original_keyboard function
-        keyboard = self.create_original_keyboard(article_id)
+        keyboard = self.create_original_keyboard(article_id, "")
 
         await query.edit_message_reply_markup(reply_markup=keyboard)
 
@@ -308,9 +353,7 @@ class TelegramBotService(ITelegramBotService):
             )
             new_image_url = news_article.images_url[new_image_index]
 
-            keyboard = self.create_original_keyboard(
-                article_id, current_image_index=new_image_index
-            )
+            keyboard = self.create_original_keyboard(article_id, "")
 
             # Send a new message with the updated image and caption
             await query.message.reply_photo(
