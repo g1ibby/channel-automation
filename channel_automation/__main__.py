@@ -99,6 +99,24 @@ def bot2() -> None:
 
     telegram_bot_service.run()
 
+@app.command(name="bot-prod")
+def bot_prod() -> None:
+    """Run the bot."""
+    SERP_API_KEY = "ed694bfc6af60767a2f7cb3345477c22effca088fb2a795450e86b2f16abc354"
+    TELEGRAM_BOT_TOKEN = "2039441709:AAFlyagf7AIMtZ0WuHJ0FjLwxn85-4r5HP0"
+    ADMIN_CHAT_ID = "1672563160"
+    DATABASE_URL = "postgresql://user:password@db/automation"
+
+    repository = Repository(DATABASE_URL)
+    es_repo = ESRepository(host="elasticsearch", port=9200)
+    assistant = Assistant("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")
+    image_search = BingImageSearch()
+    telegram_bot_service = TelegramBotService(
+        TELEGRAM_BOT_TOKEN, ADMIN_CHAT_ID, repository, es_repo, assistant, image_search
+    )
+
+    telegram_bot_service.run()
+
 
 @app.command(name="crawler")
 def crawler() -> None:
