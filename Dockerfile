@@ -16,7 +16,10 @@ FROM python:3.11-alpine
 WORKDIR /app
 ENV PYTHONPATH=/app
 
-COPY --from=builder /usr/local /usr/local
+# Copy only the installed Python packages
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
 COPY . /app
 
 CMD ["python", "channel_automation/__main__.py", "bot-prod"]
