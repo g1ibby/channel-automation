@@ -5,7 +5,7 @@ default_context:
   project_description: "channel-automation is tool to atomate telegram channels"
   organization: "g1ibby"
   license: "MIT"
-  minimal_python_version: 3.9
+  minimal_python_version: 3.11
   github_name: "g1ibby"
   email: "hello@g1ibby.com"
   version: "0.1.0"

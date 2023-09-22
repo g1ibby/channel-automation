@@ -17,6 +17,13 @@ channel-automation is tool to atomate telegram channels
 
 </div>
 
+## how to pull image
+
+```bash
+echo <YOUR_PERSONAL_ACCESS_TOKEN> | docker login ghcr.io -u g1ibby --password-stdin
+docker pull ghcr.io/g1ibby/channel-automation:latest
+```
+
 ## Database migrations
 ```bash
 alembic revision --autogenerate -m "Remove name field from Source model"
@@ -126,7 +133,7 @@ Articles:
 
 ### Development features
 
-- Supports for `Python 3.9` and higher.
+- Supports for `Python 3.11` and higher.
 - [`Poetry`](https://python-poetry.org/) as the dependencies manager. See configuration in [`pyproject.toml`](https://github.com/g1ibby/channel-automation/blob/master/pyproject.toml) and [`setup.cfg`](https://github.com/g1ibby/channel-automation/blob/master/setup.cfg).
 - Automatic codestyle with [`black`](https://github.com/psf/black), [`isort`](https://github.com/timothycrosley/isort) and [`pyupgrade`](https://github.com/asottile/pyupgrade).
 - Ready-to-use [`pre-commit`](https://pre-commit.com/) hooks with code-formatting.

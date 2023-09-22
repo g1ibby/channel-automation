@@ -36,6 +36,9 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
 
+  channel-automation:
+    image: "ghcr.io/g1ibby/channel-automation:latest"
+
 volumes:
   db-data:
   esdata:
