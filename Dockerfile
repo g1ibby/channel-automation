@@ -12,7 +12,7 @@ RUN apk --no-cache add --virtual build-deps gcc musl-dev && \
     pip install --no-cache-dir poetry && \
     poetry config virtualenvs.create false && \
     poetry install --no-dev && \
-    apk del build-deps
+    apk del build-deps gcc musl-dev
 
 # Copy the rest of the application code
 COPY . /app
