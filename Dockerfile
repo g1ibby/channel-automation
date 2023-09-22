@@ -18,4 +18,4 @@ RUN apk --no-cache add --virtual build-deps gcc musl-dev && \
 COPY . /app
 
 # Set the command to run your application
-CMD ["python", "channel_automation/__main__.py", "bot2"]
+CMD ["python", "channel_automation/__main__.py", "bot-prod"]
