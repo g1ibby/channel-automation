@@ -1,22 +1,22 @@
-# Use a lighter base image
-FROM python:3.11-alpine
+# Builder Stage
+FROM python:3.11-alpine as builder
 
-# Set the working directory in the container
 WORKDIR /app
-ENV PYTHONPATH=/app
 
-# Only copy necessary files for installing dependencies
 COPY pyproject.toml poetry.lock /app/
 
-# Install poetry, project dependencies, and clean up
 RUN apk --no-cache add --virtual build-deps gcc musl-dev && \
     pip install --no-cache-dir poetry && \
     poetry config virtualenvs.create false && \
-    poetry install --no-dev && \
-    apk del build-deps gcc musl-dev
+    poetry install --no-dev
 
-# Copy the rest of the application code
+# Final Stage
+FROM python:3.11-alpine
+
+WORKDIR /app
+ENV PYTHONPATH=/app
+
+COPY --from=builder /usr/local /usr/local
 COPY . /app
 
-# Set the command to run your application
 CMD ["python", "channel_automation/__main__.py", "bot-prod"]
