@@ -3,6 +3,7 @@ FROM python:3.11-alpine
 
 # Set the working directory in the container
 WORKDIR /app
+ENV PYTHONPATH=/app
 
 # Only copy necessary files for installing dependencies
 COPY pyproject.toml poetry.lock /app/
