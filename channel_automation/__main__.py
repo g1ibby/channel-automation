@@ -1,4 +1,3 @@
-# type: ignore[attr-defined]
 from typing import List, Optional
 
 import asyncio
@@ -83,6 +82,7 @@ def bot(token: str = typer.Option(..., help="Telegram bot token.")) -> None:
 
 @app.command(name="bot2")
 def bot2() -> None:
+    console.print("bot2")
     """Run the bot."""
     SERP_API_KEY = "ed694bfc6af60767a2f7cb3345477c22effca088fb2a795450e86b2f16abc354"
     TELEGRAM_BOT_TOKEN = "2039441709:AAFlyagf7AIMtZ0WuHJ0FjLwxn85-4r5HP0"
@@ -99,9 +99,12 @@ def bot2() -> None:
 
     telegram_bot_service.run()
 
-@app.command(name="bot-prod")
+
+@app.command(name="botprod")
 def bot_prod() -> None:
     """Run the bot."""
+    console.print("bot-prod")
+
     SERP_API_KEY = "ed694bfc6af60767a2f7cb3345477c22effca088fb2a795450e86b2f16abc354"
     TELEGRAM_BOT_TOKEN = "2039441709:AAFlyagf7AIMtZ0WuHJ0FjLwxn85-4r5HP0"
     ADMIN_CHAT_ID = "1672563160"
@@ -109,6 +112,8 @@ def bot_prod() -> None:
 
     repository = Repository(DATABASE_URL)
     es_repo = ESRepository(host="elasticsearch", port=9200)
+    if es_repo is None:
+        return
     assistant = Assistant("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")
     image_search = BingImageSearch()
     telegram_bot_service = TelegramBotService(
@@ -121,7 +126,7 @@ def bot_prod() -> None:
 @app.command(name="crawler")
 def crawler() -> None:
     """Run the crawler."""
-    print("crawler")
+    console.print("crawler")
     # Initialize the ElasticsearchNewsArticleRepository with the host and port
     repository = ESRepository(host="localhost", port=9200)
 
@@ -145,41 +150,41 @@ def crawler() -> None:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("Stopping the scheduler...")
+        console.log("Stopping the scheduler...")
 
 
 @app.command(name="test-db-2")
 def test_db_two() -> None:
     """Run the test-db."""
-    print("test-db")
+    console.log("test-db")
     DATABASE_URL = "postgresql://user:password@localhost/automation"
     repo = Repository(DATABASE_URL)
 
     # Add or update a channel
     channel_to_add = ChannelInfo(id="-100123456789", title="Sample Channel")
     added_channel = repo.add_channel(channel_to_add)
-    print(f"Added channel: {added_channel}")
+    console.log(f"Added channel: {added_channel}")
 
     channel_to_add = ChannelInfo(id="-100123456799", title="Sample Channel 2")
     added_channel = repo.add_channel(channel_to_add)
-    print(f"Added channel: {added_channel}")
+    console.log(f"Added channel: {added_channel}")
 
     # Remove a channel by its ID
     channel_id_to_remove = "-100123456789"
     repo.remove_channel(channel_id_to_remove)
-    print(f"Removed channel with ID: {channel_id_to_remove}")
+    console.log(f"Removed channel with ID: {channel_id_to_remove}")
 
     # Get all channels
     all_channels = repo.get_all_channels()
     print("All channels:")
     for channel in all_channels:
-        print(channel)
+        console.log(channel)
 
 
 @app.command(name="test-db")
 def test_db() -> None:
     """Run the test-db."""
-    print("test-db")
+    console.log("test-db")
     DATABASE_URL = "postgresql://user:password@localhost/automation"
     repository = Repository(DATABASE_URL)
     # Add a new sources
@@ -194,7 +199,7 @@ def test_db() -> None:
     # Get all active sources
     active_sources = repository.get_active_sources()
     for source in active_sources:
-        print(source.link)
+        console.log(source.link)
 
 
 @app.command(name="gpt")
@@ -210,18 +215,18 @@ def gpt() -> None:
     for data in chatbot.ask(prompt):
         response = data["message"]
 
-    print(response)
+    console.log(response)
 
 
 @app.command(name="gpt2")
 def gpt2() -> None:
-    print("gpt2")
+    console.log("gpt2")
     assist = Assistant("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")
     repository = ESRepository(host="localhost", port=9200)
     news = repository.get_latest_news(1)
-    print(news[0].text)
+    console.log(news[0].text)
     res_news = assist.process_and_translate_article(news[0])
-    print(res_news.russian_abstract)
+    console.log(res_news.russian_abstract)
     repository.update_news_article(res_news)
 
 
@@ -238,7 +243,7 @@ def img() -> None:
 
     # Print the retrieved image URLs
     for i, url in enumerate(image_urls):
-        print(f"Image {i + 1}: {url}")
+        console.log(f"Image {i + 1}: {url}")
 
 
 if __name__ == "__main__":

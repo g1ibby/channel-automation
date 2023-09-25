@@ -21,8 +21,6 @@ services:
       - "9200:9200"
     volumes:
       - esdata:/usr/share/elasticsearch/data
-    networks:
-      - esnet
 
   db:
     image: "postgres:15.2-alpine"
@@ -37,11 +35,8 @@ services:
       - db-data:/var/lib/postgresql/data
 
   channel-automation:
-    image: "ghcr.io/g1ibby/channel-automation:latest"
+    image: "channel-automation"
 
 volumes:
   db-data:
   esdata:
-
-networks:
-  esnet:

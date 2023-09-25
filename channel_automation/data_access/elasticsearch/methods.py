@@ -1,5 +1,7 @@
 from typing import Any, Optional
 
+import time
+
 from elasticsearch import Elasticsearch
 
 from channel_automation.interfaces.es_repository_interface import IESRepository
@@ -7,25 +9,30 @@ from channel_automation.models import NewsArticle
 
 
 class ESRepository(IESRepository):
-    def __init__(self, host: str, port: int):
-        self.es = self.init_elasticsearch(host, port)
+    def __init__(self, host: str, port: int, retries: int = 10, delay: int = 6):
         self.index = "news"
+        self.es = self.init_elasticsearch(host, port, retries, delay)
 
-    def init_elasticsearch(self, host: str, port: int) -> Elasticsearch:
-        try:
-            es = Elasticsearch(
-                [{"host": host, "port": port, "scheme": "http"}],
-                basic_auth=("elastic", "elastic"),
-            )
-            if es.ping():
-                print("Elasticsearch connected.")
-                return es
-            else:
-                print("Elasticsearch connection failed.")
-                return None
-        except Exception as e:
-            print(f"Error connecting to Elasticsearch: {e}")
-            return None
+    def init_elasticsearch(
+        self, host: str, port: int, retries: int, delay: int
+    ) -> Optional[Elasticsearch]:
+        for attempt in range(retries):
+            try:
+                es = Elasticsearch(
+                    [{"host": host, "port": port, "scheme": "http"}],
+                    basic_auth=("elastic", "elastic"),
+                )
+                if es.ping():
+                    print("Elasticsearch connected.")
+                    return es
+                else:
+                    print("Elasticsearch connection failed.")
+            except Exception as e:
+                print(f"Attempt {attempt + 1} - Error connecting to Elasticsearch: {e}")
+            # If this is not the last attempt, sleep for the specified delay before retrying
+            if attempt < retries - 1:
+                time.sleep(delay)
+        return None
 
     def save_news_article(self, news_article: NewsArticle) -> NewsArticle:
         doc_id = news_article.id
