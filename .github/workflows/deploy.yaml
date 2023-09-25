@@ -1,0 +1,31 @@
+name: Deploy Application
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Setup Ansible
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ansible
+
+    - name: Archive Repository
+      run: tar -czf repo.tar.gz .
+
+    - name: Run Ansible Playbook
+      env:
+        PRIVATE_KEY: ${{ secrets.DEPLOY_KEY }}
+      run: |
+        echo "$PRIVATE_KEY" > private_key.pem
+        chmod 600 private_key.pem
+        scp -o StrictHostKeyChecking=no -i private_key.pem repo.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/opt/channle_automation
+        ansible-playbook -i ${{ secrets.SERVER_IP }}, -u ${{ secrets.SERVER_USER }} --private-key=private_key.pem ansible/playbook.yaml

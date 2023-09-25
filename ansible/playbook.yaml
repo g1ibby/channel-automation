@@ -1,0 +1,65 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: Update the system
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Ensure APT uses the HTTPS transport
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker APT repository
+      ansible.builtin.apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+
+    - name: Start Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Get the latest version of Docker Compose
+      get_url:
+        url: https://github.com/docker/compose/releases/latest/download/docker-compose-Linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Ensure project directory exists
+      file:
+        path: /opt/channel_automation
+        state: directory
+
+    - name: Extract the Repository
+      unarchive:
+        src: /opt/channel_automation/repo.tar.gz
+        dest: /opt/channel_automation
+        remote_src: yes
+
+    - name: Remove the Repository Tarball
+      file:
+        path: /opt/channel_automation/repo.tar.gz
+        state: absent
+
+    - name: Run Docker Compose Up
+      command: docker-compose up -d --pull
+      args:
+        chdir: /opt/channel_automation
