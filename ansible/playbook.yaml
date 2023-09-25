@@ -48,9 +48,9 @@
         path: /opt/channel_automation
         state: directory
 
-    - name: Extract the Repository
+    - name: Extract the Repository Tarball
       unarchive:
-        src: /opt/channel_automation/repo.tar.gz
+        src: /tmp/repo.tar.gz
         dest: /opt/channel_automation
         remote_src: yes
 
