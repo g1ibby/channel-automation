@@ -59,6 +59,12 @@
         path: /opt/channel_automation/repo.tar.gz
         state: absent
 
+    - name: Login to GitHub Container Registry
+      docker_login:
+        registry: ghcr.io
+        username: g1ibby
+        password: "{{ github_token }}"
+
     - name: Pull the latest Docker images
       command: docker-compose pull
       args:

@@ -32,8 +32,9 @@ jobs:
     - name: Run Ansible Playbook
       env:
         PRIVATE_KEY: ${{ secrets.DEPLOY_KEY }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         echo "$PRIVATE_KEY" > private_key.pem
         chmod 600 private_key.pem
         scp -o StrictHostKeyChecking=no -i private_key.pem ../repo.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/repo.tar.gz
-        ansible-playbook -i ${{ secrets.SERVER_IP }}, -u ${{ secrets.SERVER_USER }} --private-key=private_key.pem ansible/playbook.yaml
+        ansible-playbook -i ${{ secrets.SERVER_IP }}, -u ${{ secrets.SERVER_USER }} --private-key=private_key.pem --extra-vars "github_token=$GITHUB_TOKEN" ansible/playbook.yaml
