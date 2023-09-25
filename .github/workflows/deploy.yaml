@@ -26,11 +26,8 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y ansible
 
-    - name: List Directory Contents
-      run: ls -la
-
     - name: Archive Repository
-      run: tar --warning=no-file-changed -czf repo.tar.gz .
+      run: tar --exclude=.git --exclude=.github --exclude=repo.tar.gz -czf repo.tar.gz .
 
     - name: Run Ansible Playbook
       env:
