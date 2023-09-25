@@ -1,39 +1,27 @@
-name: Deploy Application
+name: Build and Publish Docker Image
 
 on:
-  workflow_run:
-    workflows: ["Build and Publish Docker Image"]
-    types:
-      - completed
+  push:
+    branches:
+      - main
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-    - name: Check Secrets
-      run: |
-        if [[ -z "${{ secrets.DEPLOY_KEY }}" || -z "${{ secrets.SERVER_USER }}" || -z "${{ secrets.SERVER_IP }}" ]]; then
-          echo "One or more required secrets are missing. Exiting."
-          exit 1
-        fi
-
-    - name: Checkout Code
+    - name: Check out the repo
       uses: actions/checkout@v2
 
-    - name: Setup Ansible
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ansible
+    - name: Log in to the GitHub Docker registry
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Archive Repository
-      run: tar -czf repo.tar.gz .
-
-    - name: Run Ansible Playbook
-      env:
-        PRIVATE_KEY: ${{ secrets.DEPLOY_KEY }}
-      run: |
-        echo "$PRIVATE_KEY" > private_key.pem
-        chmod 600 private_key.pem
-        scp -o StrictHostKeyChecking=no -i private_key.pem repo.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/opt/your_project_name
-        ansible-playbook -i ${{ secrets.SERVER_IP }}, -u ${{ secrets.SERVER_USER }} --private-key=private_key.pem ansible/playbook.yml
+    - name: Build and publish the Docker image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: ghcr.io/g1ibby/channel-automation:latest
