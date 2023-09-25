@@ -59,7 +59,12 @@
         path: /opt/channel_automation/repo.tar.gz
         state: absent
 
+    - name: Pull the latest Docker images
+      command: docker-compose pull
+      args:
+        chdir: /opt/channel_automation
+
     - name: Run Docker Compose Up
-      command: docker-compose up -d --pull
+      command: docker-compose up -d
       args:
         chdir: /opt/channel_automation
