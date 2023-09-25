@@ -1,15 +1,23 @@
 name: Deploy Application
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["Build and Publish Docker Image"]
+    types:
+      - completed
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
+    - name: Check Secrets
+      run: |
+        if [[ -z "${{ secrets.DEPLOY_KEY }}" || -z "${{ secrets.SERVER_USER }}" || -z "${{ secrets.SERVER_IP }}" ]]; then
+          echo "One or more required secrets are missing. Exiting."
+          exit 1
+        fi
+
     - name: Checkout Code
       uses: actions/checkout@v2
 
@@ -18,8 +26,11 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y ansible
 
+    - name: List Directory Contents
+      run: ls -la
+
     - name: Archive Repository
-      run: tar -czf repo.tar.gz .
+      run: tar --warning=no-file-changed -czf repo.tar.gz .
 
     - name: Run Ansible Playbook
       env:
@@ -27,5 +38,5 @@ jobs:
       run: |
         echo "$PRIVATE_KEY" > private_key.pem
         chmod 600 private_key.pem
-        scp -o StrictHostKeyChecking=no -i private_key.pem repo.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/opt/channle_automation
-        ansible-playbook -i ${{ secrets.SERVER_IP }}, -u ${{ secrets.SERVER_USER }} --private-key=private_key.pem ansible/playbook.yaml
+        scp -o StrictHostKeyChecking=no -i private_key.pem repo.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/opt/your_project_name
+        ansible-playbook -i ${{ secrets.SERVER_IP }}, -u ${{ secrets.SERVER_USER }} --private-key=private_key.pem ansible/playbook.yml
