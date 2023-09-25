@@ -26,8 +26,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y ansible
 
-    - name: Archive Repository
-      run: tar --exclude=.git --exclude=.github --exclude=repo.tar.gz -czf repo.tar.gz .
+    - name: Copy Archive to Server
+      run: scp -o StrictHostKeyChecking=no -i private_key.pem ../repo.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/opt/your_project_name
+
 
     - name: Run Ansible Playbook
       env:
@@ -35,5 +36,5 @@ jobs:
       run: |
         echo "$PRIVATE_KEY" > private_key.pem
         chmod 600 private_key.pem
-        scp -o StrictHostKeyChecking=no -i private_key.pem repo.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/opt/your_project_name
+        scp -o StrictHostKeyChecking=no -i private_key.pem ../repo.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/opt/your_project_name
         ansible-playbook -i ${{ secrets.SERVER_IP }}, -u ${{ secrets.SERVER_USER }} --private-key=private_key.pem ansible/playbook.yml
