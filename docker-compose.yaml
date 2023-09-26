@@ -37,6 +37,8 @@ services:
   channel-automation:
     image: "ghcr.io/g1ibby/channel-automation:latest"
     restart: always
+    depends_on:
+      - db
 
 volumes:
   db-data:

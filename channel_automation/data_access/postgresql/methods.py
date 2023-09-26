@@ -4,6 +4,8 @@ from contextlib import contextmanager
 
 from sqlmodel import Session, create_engine
 
+from alembic import command
+from alembic.config import Config
 from channel_automation.interfaces.pg_repository_interface import IRepository
 from channel_automation.models import ChannelInfo
 from channel_automation.models.source import Source
@@ -11,6 +13,10 @@ from channel_automation.models.source import Source
 
 class Repository(IRepository):
     def __init__(self, database_url: str):
+        alembic_cfg = Config("alembic.ini")
+        alembic_cfg.set_main_option("sqlalchemy.url", database_url)
+        command.upgrade(alembic_cfg, "head")
+
         self.engine = create_engine(database_url)
 
     @contextmanager

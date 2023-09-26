@@ -37,6 +37,8 @@ services:
   channel-automation:
     image: "channel-automation"
     restart: always
+    environment:
+      DB_URL: "postgresql://user:password@db/automation"
 
 volumes:
   db-data:
