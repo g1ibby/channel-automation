@@ -28,6 +28,7 @@ docker pull ghcr.io/g1ibby/channel-automation:latest
 ```bash
 alembic revision --autogenerate -m "Remove name field from Source model"
 python -m alembic revision --autogenerate -m "Add new ChannelInfo model"
+python -m alembic revision --autogenerate -m "Init database"
 alembic upgrade head
 ```
 
