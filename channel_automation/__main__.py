@@ -106,7 +106,7 @@ def bot_prod() -> None:
     console.print("bot-prod")
 
     SERP_API_KEY = "ed694bfc6af60767a2f7cb3345477c22effca088fb2a795450e86b2f16abc354"
-    TELEGRAM_BOT_TOKEN = "2039441709:AAFlyagf7AIMtZ0WuHJ0FjLwxn85-4r5HP0"
+    TELEGRAM_BOT_TOKEN = "6455880220:AAHhCpcGWi8vNM_xgLUUC5ZBbiXJCBvM4mg"
     ADMIN_CHAT_ID = "1672563160"
     DATABASE_URL = "postgresql://user:password@db/automation"
 
