@@ -48,16 +48,20 @@
         path: /opt/channel_automation
         state: directory
 
+    - name: Stop Docker Compose Services
+      shell: docker-compose down
+      args:
+        chdir: /opt/channel_automation
+      ignore_errors: yes
+
+    - name: Clear project directory
+      shell: rm -rf /opt/channel_automation/*
+
     - name: Extract the Repository Tarball
       unarchive:
         src: /tmp/repo.tar.gz
         dest: /opt/channel_automation
         remote_src: yes
-
-    - name: Remove the Repository Tarball
-      file:
-        path: /opt/channel_automation/repo.tar.gz
-        state: absent
 
     - name: Login to GitHub Container Registry
       docker_login:
@@ -65,23 +69,21 @@
         username: g1ibby
         password: "{{ github_token }}"
 
-    - name: Create env.sh file with environment variables
+    - name: Create .env file with environment variables
       copy:
-        dest: /opt/channel_automation/env.sh
+        dest: /opt/channel_automation/.env
         content: |
-          #!/bin/sh
-          export image_name="ghcr.io/g1ibby/channel-automation:latest"
-          export APP_TELEGRAM_BOT_TOKEN="{{ telegram_bot_token }}"
-          export APP_ADMIN_CHAT_ID="{{ admin_chat_id }}"
-          export APP_ASSISTANT_TOKEN="{{ assistant_token }}"
-        mode: "0755"
+          image_name="ghcr.io/g1ibby/channel-automation:latest"
+          APP_TELEGRAM_BOT_TOKEN="{{ telegram_bot_token }}"
+          APP_ADMIN_CHAT_ID="{{ admin_chat_id }}"
+          APP_ASSISTANT_TOKEN="{{ assistant_token }}"
 
     - name: Pull the latest Docker images
-      command: . /opt/channel_automation/env.sh && docker-compose pull
+      shell: docker-compose pull
       args:
         chdir: /opt/channel_automation
 
     - name: Run Docker Compose Up
-      command: . /opt/channel_automation/env.sh && docker-compose up -d
+      shell: docker-compose up -d
       args:
         chdir: /opt/channel_automation
