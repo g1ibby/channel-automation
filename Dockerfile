@@ -22,4 +22,4 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 COPY . /app
 
-CMD ["python", "-u", "channel_automation/__main__.py", "botprod"]
+CMD ["python", "-u", "channel_automation/__main__.py", "bot"]

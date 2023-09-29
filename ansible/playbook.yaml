@@ -65,12 +65,24 @@
         username: g1ibby
         password: "{{ github_token }}"
 
+    - name: Create env.sh file with environment variables
+      copy:
+        dest: /opt/channel_automation/env.sh
+        content: |
+          #!/bin/sh
+          export image_name="ghcr.io/g1ibby/channel-automation:latest"
+          export APP_TELEGRAM_BOT_TOKEN="{{ telegram_bot_token }}"
+          export APP_ADMIN_CHAT_ID="{{ admin_chat_id }}"
+          export APP_ASSISTANT_TOKEN="{{ assistant_token }}"
+          # Add other environment variables if needed
+      mode: "0755"
+
     - name: Pull the latest Docker images
-      command: docker-compose pull
+      command: . /opt/channel_automation/env.sh && docker-compose pull
       args:
         chdir: /opt/channel_automation
 
     - name: Run Docker Compose Up
-      command: docker-compose up -d
+      command: . /opt/channel_automation/env.sh && docker-compose up -d
       args:
         chdir: /opt/channel_automation

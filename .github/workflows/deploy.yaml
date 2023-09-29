@@ -33,8 +33,11 @@ jobs:
       env:
         PRIVATE_KEY: ${{ secrets.DEPLOY_KEY }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        ADMIN_CHAT_ID: ${{ secrets.ADMIN_CHAT_ID }}
+        ASSISTANT_TOKEN: ${{ secrets.ASSISTANT_TOKEN }}
       run: |
         echo "$PRIVATE_KEY" > private_key.pem
         chmod 600 private_key.pem
         scp -o StrictHostKeyChecking=no -i private_key.pem ../repo.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/repo.tar.gz
-        ansible-playbook -i ${{ secrets.SERVER_IP }}, -u ${{ secrets.SERVER_USER }} --private-key=private_key.pem --extra-vars "github_token=$GITHUB_TOKEN" ansible/playbook.yaml
+        ansible-playbook -i ${{ secrets.SERVER_IP }}, -u ${{ secrets.SERVER_USER }} --private-key=private_key.pem --extra-vars "github_token=$GITHUB_TOKEN telegram_bot_token=$TELEGRAM_BOT_TOKEN admin_chat_id=$ADMIN_CHAT_ID assistant_token=$ASSISTANT_TOKEN" ansible/playbook.yaml

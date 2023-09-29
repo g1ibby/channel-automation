@@ -35,10 +35,15 @@ services:
       - db-data:/var/lib/postgresql/data
 
   channel-automation:
-    image: "ghcr.io/g1ibby/channel-automation:latest"
+    image: "${image_name}"
     restart: always
-    depends_on:
-      - db
+    environment:
+      APP_TELEGRAM_BOT_TOKEN: "${APP_TELEGRAM_BOT_TOKEN}"
+      APP_ADMIN_CHAT_ID: "${APP_ADMIN_CHAT_ID}"
+      APP_ASSISTANT_TOKEN: "${APP_ASSISTANT_TOKEN}"
+      APP_DATABASE_URL: "postgresql://user:password@db/automation"
+      APP_ES_HOST: "elasticsearch"
+      APP_ES_PORT: 9200
 
 volumes:
   db-data:

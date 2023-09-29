@@ -48,6 +48,7 @@ google-search-results = "^2.4.2"
 requests = "^2.31.0"
 beautifulsoup4 = "^4.12.2"
 elasticsearch = "^8.9.0"
+pydantic = "^1.8.2"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.1"
