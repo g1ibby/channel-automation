@@ -74,8 +74,7 @@
           export APP_TELEGRAM_BOT_TOKEN="{{ telegram_bot_token }}"
           export APP_ADMIN_CHAT_ID="{{ admin_chat_id }}"
           export APP_ASSISTANT_TOKEN="{{ assistant_token }}"
-          # Add other environment variables if needed
-      mode: "0755"
+        mode: "0755"
 
     - name: Pull the latest Docker images
       command: . /opt/channel_automation/env.sh && docker-compose pull
