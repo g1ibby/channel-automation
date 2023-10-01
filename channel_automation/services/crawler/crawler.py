@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from dataclasses import fields
 
@@ -12,14 +12,6 @@ from channel_automation.interfaces.news_crawler_service_interface import (
 from channel_automation.models import NewsArticle
 from channel_automation.services.crawler.sources.bangkokpost import BangkokpostCrawler
 from channel_automation.services.crawler.sources.common import CommonCrawler
-
-
-def news_article_from_json(json_data: dict[str, Any]) -> NewsArticle:
-    init_args = {
-        field.name: json_data.get(field.metadata.get("json_key", field.name))
-        for field in fields(NewsArticle)
-    }
-    return NewsArticle(**init_args)
 
 
 class NewsCrawlerService:
@@ -37,22 +29,22 @@ class NewsCrawlerService:
     def start_crawling(self):
         sources = self.repo.get_active_sources()
         for source in sources:
-            self.schedule_news_crawling(source.url, source.crawl_interval)
+            self.schedule_news_crawling(source.link)
 
-    def schedule_news_crawling(self, url: str, interval_hours: int):
+    def schedule_news_crawling(self, url: str):
         self.scheduler.add_job(
             self.crawl_and_extract_news_articles,
             "interval",
-            hours=interval_hours,
+            hours=6,
             args=[url],
             replace_existing=True,
         )
-        print(f"Scheduled crawling for {url} every {interval_hours} hours")
+        print(f"Scheduled crawling for {url}")
 
     def crawl_and_extract_news_articles(self, main_page: str):
         extracted_articles = []
         if "bangkokpost.com" in main_page:
-            crawler = BangkokpostCrawler("https://www.bangkokpost.com/life/travel/")
+            crawler = BangkokpostCrawler()
             extracted_articles = crawler.crawl()
         else:
             common_crawler = CommonCrawler(main_page)
@@ -68,7 +60,7 @@ class NewsCrawlerService:
 
         # Schedule new sources
         for source in new_sources - current_sources:
-            self.schedule_news_crawling(source.url, source.crawl_interval)
+            self.schedule_news_crawling(source.link)
 
         # Remove disabled sources
         for source in current_sources - new_sources:

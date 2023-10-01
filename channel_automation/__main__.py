@@ -55,7 +55,7 @@ def crawler() -> None:
     """Run the crawler."""
     config = Config()
 
-    es_repo = ESRepository(host="localhost", port=9200)
+    es_repo = ESRepository(host=config.ES_HOST, port=config.ES_PORT)
     repo = Repository(config.DATABASE_URL)
 
     # Initialize the NewsCrawlerService with the news_article_repository instance
