@@ -12,6 +12,10 @@ from channel_automation.interfaces.news_crawler_service_interface import (
 from channel_automation.models import NewsArticle
 from channel_automation.services.crawler.sources.bangkokpost import BangkokpostCrawler
 from channel_automation.services.crawler.sources.common import CommonCrawler
+from channel_automation.services.crawler.sources.tatnews import TatnewsCrawler
+from channel_automation.services.crawler.sources.tourismthailand import (
+    TourismthailandCrawler,
+)
 
 
 class NewsCrawlerService:
@@ -45,6 +49,12 @@ class NewsCrawlerService:
         extracted_articles = []
         if "bangkokpost.com" in main_page:
             crawler = BangkokpostCrawler()
+            extracted_articles = crawler.crawl()
+        if "tatnews.org" in main_page:
+            crawler = TatnewsCrawler()
+            extracted_articles = crawler.crawl()
+        if "tourismthailand.org" in main_page:
+            crawler = TourismthailandCrawler()
             extracted_articles = crawler.crawl()
         else:
             common_crawler = CommonCrawler(main_page)
