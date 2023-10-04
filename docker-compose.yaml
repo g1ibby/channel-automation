@@ -21,6 +21,11 @@ services:
       - "9200:9200"
     volumes:
       - esdata:/usr/share/elasticsearch/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
 
   db:
     image: "postgres:15.2-alpine"
@@ -33,6 +38,11 @@ services:
       - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
 
   channel-automation:
     image: "${image_name}"
@@ -44,6 +54,11 @@ services:
       APP_DATABASE_URL: "postgresql://user:password@db/automation"
       APP_ES_HOST: "elasticsearch"
       APP_ES_PORT: 9200
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
 
 volumes:
   db-data:
