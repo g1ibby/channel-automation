@@ -7,3 +7,6 @@ class Source(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     link: str = Field()
     is_active: bool = Field(default=True)
+
+    def __hash__(self):
+        return hash(self.id)

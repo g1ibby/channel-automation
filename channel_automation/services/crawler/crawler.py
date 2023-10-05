@@ -1,7 +1,9 @@
 from typing import Any
 
+import datetime
 from dataclasses import fields
 
+import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from channel_automation.data_access.elasticsearch.methods import ESRepository
@@ -22,20 +24,27 @@ class NewsCrawlerService:
     def __init__(self, news_article_repository: ESRepository, repo: Repository):
         self.news_article_repository = news_article_repository
         self.repo = repo
-        self.scheduler = BackgroundScheduler()
+        bangkok_tz = pytz.timezone("Asia/Bangkok")
+        self.scheduler = BackgroundScheduler(timezone=bangkok_tz)
         self.scheduler.start()
+
+    def start_crawling(self):
+        self.scheduler.add_job(
+            self.refresh_sources, next_run_time=datetime.datetime.now()
+        )
         self.scheduler.add_job(
             self.refresh_sources,
             "interval",
             hours=1,
         )
 
-    def start_crawling(self):
-        sources = self.repo.get_active_sources()
-        for source in sources:
-            self.schedule_news_crawling(source.link)
-
     def schedule_news_crawling(self, url: str):
+        print(f"Running crawling for {url}")
+        self.scheduler.add_job(
+            self.crawl_and_extract_news_articles,
+            args=[url],
+            next_run_time=datetime.datetime.now(),
+        )
         self.scheduler.add_job(
             self.crawl_and_extract_news_articles,
             "interval",
@@ -46,14 +55,15 @@ class NewsCrawlerService:
         print(f"Scheduled crawling for {url}")
 
     def crawl_and_extract_news_articles(self, main_page: str):
+        print(f"crawl and extract {main_page}")
         extracted_articles = []
         if "bangkokpost.com" in main_page:
             crawler = BangkokpostCrawler()
             extracted_articles = crawler.crawl()
-        if "tatnews.org" in main_page:
+        elif "tatnews.org" in main_page:
             crawler = TatnewsCrawler()
             extracted_articles = crawler.crawl()
-        if "tourismthailand.org" in main_page:
+        elif "tourismthailand.org" in main_page:
             crawler = TourismthailandCrawler()
             extracted_articles = crawler.crawl()
         else:
@@ -66,11 +76,14 @@ class NewsCrawlerService:
 
     def refresh_sources(self):
         current_sources = {job.args[0] for job in self.scheduler.get_jobs()}
-        new_sources = set(self.repo.get_active_sources())
+        print(current_sources)
+        new_sources = {s.link for s in self.repo.get_active_sources()}
+        # new_sources = set(self.repo.get_active_sources())
+        print(new_sources)
 
         # Schedule new sources
         for source in new_sources - current_sources:
-            self.schedule_news_crawling(source.link)
+            self.schedule_news_crawling(source)
 
         # Remove disabled sources
         for source in current_sources - new_sources:

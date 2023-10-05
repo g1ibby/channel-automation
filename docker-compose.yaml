@@ -60,6 +60,23 @@ services:
           cpus: '0.25'
           memory: 512M
 
+  channel-automation-crawler:
+    image: "${image_name}"
+    restart: always
+    environment:
+      APP_TELEGRAM_BOT_TOKEN: "${APP_TELEGRAM_BOT_TOKEN}"
+      APP_ADMIN_CHAT_ID: "${APP_ADMIN_CHAT_ID}"
+      APP_ASSISTANT_TOKEN: "${APP_ASSISTANT_TOKEN}"
+      APP_DATABASE_URL: "postgresql://user:password@db/automation"
+      APP_ES_HOST: "elasticsearch"
+      APP_ES_PORT: 9200
+    command: ["python", "-u", "channel_automation/__main__.py", "crawler"]
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
+
 volumes:
   db-data:
   esdata:

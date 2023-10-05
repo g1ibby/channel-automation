@@ -3,9 +3,9 @@ from typing import Any, Optional
 import json
 from dataclasses import fields
 
+import requests
 import trafilatura
 from bs4 import BeautifulSoup
-from requests import request
 
 from channel_automation.models import NewsArticle
 
@@ -41,7 +41,9 @@ class BangkokpostCrawler:
         pass
 
     def crawl(self) -> list[NewsArticle]:
+        print("Crawling Bangkok Post")
         news_links = self.crawl_news_links()
+        print(news_links)
         extracted_articles = []
         for link in news_links:
             print(f"Extracting content from {link}")
@@ -54,9 +56,9 @@ class BangkokpostCrawler:
     def crawl_news_links(self) -> list[str]:
         news_links = []
         # Just take the first page for now. We don't have a lot of new articles
-        for page in range(1, 1):
+        for page in range(1, 2):
             url = f"https://www.bangkokpost.com/v3/list_content/life/travel?page={page}"
-            response = request.get(url, headers=headers)
+            response = requests.get(url, headers=headers)
             if response:
                 print(f"Response: {response.status_code}")
                 lnks = self.extract_news_links(response.text)

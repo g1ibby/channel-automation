@@ -9,7 +9,7 @@ from channel_automation.models import NewsArticle
 
 
 class ESRepository(IESRepository):
-    def __init__(self, host: str, port: int, retries: int = 10, delay: int = 6):
+    def __init__(self, host: str, port: int, retries: int = 100, delay: int = 6):
         self.index = "news"
         self.es = self.init_elasticsearch(host, port, retries, delay)
 
