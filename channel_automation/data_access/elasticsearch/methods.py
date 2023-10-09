@@ -34,18 +34,33 @@ class ESRepository(IESRepository):
                 time.sleep(delay)
         return None
 
-    def save_news_article(self, news_article: NewsArticle) -> NewsArticle:
-        doc_id = news_article.id
-        document = news_article.__dict__
-        self.index_document(doc_id, document)
-        return news_article
+    def article_exists(self, source: str) -> bool:
+        search_results = self.es.search(
+            index=self.index,
+            body={
+                "query": {"bool": {"filter": {"term": {"source.keyword": source}}}},
+                "size": 1,  # we only need to know if at least one article exists
+            },
+        )
+        return (
+            search_results["hits"]["total"]["value"] > 0
+        )  # returns True if an article exists, False otherwise
 
-    def index_document(
-        self, doc_id: str, document: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    def save_news_article(self, news_article: NewsArticle) -> Optional[NewsArticle]:
+        print(f"Saving article with source {news_article.source}")
+        if self.article_exists(news_article.source):
+            print(f"Article with source {news_article.source} already exists.")
+            return None  # or update the existing article, or handle this situation in some other way
+        else:
+            document = news_article.__dict__
+            doc_id = self.index_document(document)
+            news_article.id = doc_id
+            return news_article
+
+    def index_document(self, document: dict[str, Any]) -> Optional[str]:
         try:
-            response = self.es.index(index=self.index, id=doc_id, document=document)
-            return response
+            response = self.es.index(index=self.index, document=document)
+            return response["_id"]
         except Exception as e:
             print(f"Error indexing document: {e}")
             return None

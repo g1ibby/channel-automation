@@ -1,5 +1,6 @@
 from typing import Any
 
+import asyncio
 import datetime
 from dataclasses import fields
 
@@ -8,6 +9,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from channel_automation.data_access.elasticsearch.methods import ESRepository
 from channel_automation.data_access.postgresql.methods import Repository
+from channel_automation.interfaces.bot_service_interface import ITelegramBotService
 from channel_automation.interfaces.news_crawler_service_interface import (
     INewsCrawlerService,
 )
@@ -21,9 +23,15 @@ from channel_automation.services.crawler.sources.tourismthailand import (
 
 
 class NewsCrawlerService:
-    def __init__(self, news_article_repository: ESRepository, repo: Repository):
+    def __init__(
+        self,
+        news_article_repository: ESRepository,
+        repo: Repository,
+        bot_service: ITelegramBotService,
+    ):
         self.news_article_repository = news_article_repository
         self.repo = repo
+        self.bot_service = bot_service
         bangkok_tz = pytz.timezone("Asia/Bangkok")
         self.scheduler = BackgroundScheduler(timezone=bangkok_tz)
         self.scheduler.start()
@@ -40,21 +48,31 @@ class NewsCrawlerService:
 
     def schedule_news_crawling(self, url: str):
         print(f"Running crawling for {url}")
+
+        async def run_crawl():  # Define a new async function
+            await self.crawl_and_extract_news_articles(
+                url
+            )  # Call your async method here
+
+        loop = asyncio.new_event_loop()  # Create a new event loop
+        asyncio.set_event_loop(loop)  # Set the new event loop as the current event loop
+
         self.scheduler.add_job(
-            self.crawl_and_extract_news_articles,
-            args=[url],
+            loop.run_until_complete,
+            args=[run_crawl()],  # Pass the new async function call
             next_run_time=datetime.datetime.now(),
         )
         self.scheduler.add_job(
-            self.crawl_and_extract_news_articles,
+            loop.run_until_complete,
             "interval",
             hours=6,
-            args=[url],
+            args=[run_crawl()],  # Pass the new async function call
             replace_existing=True,
         )
+
         print(f"Scheduled crawling for {url}")
 
-    def crawl_and_extract_news_articles(self, main_page: str):
+    async def crawl_and_extract_news_articles(self, main_page: str):
         print(f"crawl and extract {main_page}")
         extracted_articles = []
         if "bangkokpost.com" in main_page:
@@ -71,7 +89,9 @@ class NewsCrawlerService:
             extracted_articles = common_crawler.crawl()
 
         for article in extracted_articles:
-            self.news_article_repository.save_news_article(article)
+            a = self.news_article_repository.save_news_article(article)
+            if a is not None:
+                await self.bot_service.send_article_to_admin(article)
         return None
 
     def refresh_sources(self):

@@ -121,6 +121,35 @@ class TelegramBotService(ITelegramBotService):
     def format_latest_news_article(article: NewsArticle) -> str:
         return f"*{article.title}*\n[Read article]({article.source})"
 
+    @staticmethod
+    def format_news_article(article: NewsArticle) -> str:
+        return f"*{article.title}*\n[Read article]({article.source})"
+
+    async def send_formatted_article(
+        self, chat_id: str, article: NewsArticle, generate_post_button: bool = True
+    ) -> None:
+        bot = Bot(token=self.token)
+        formatted_article = self.format_news_article(article)
+
+        reply_markup = None
+        if generate_post_button:
+            reply_markup = InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton(
+                            "Generate post", callback_data=f"generate_post:{article.id}"
+                        )
+                    ],
+                ]
+            )
+
+        await bot.send_message(
+            chat_id=chat_id,
+            text=formatted_article,
+            reply_markup=reply_markup,
+            parse_mode="Markdown",
+        )
+
     async def handle_photo_reply(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
@@ -324,20 +353,8 @@ class TelegramBotService(ITelegramBotService):
         latest_articles = self.es_repo.get_latest_news(5)
 
         for article in latest_articles:
-            keyboard = InlineKeyboardMarkup(
-                [
-                    [
-                        InlineKeyboardButton(
-                            "Generate post", callback_data=f"generate_post:{article.id}"
-                        )
-                    ],
-                ]
-            )
-
-            await update.message.reply_text(
-                self.format_latest_news_article(article),
-                reply_markup=keyboard,
-                parse_mode="Markdown",
+            await self.send_formatted_article(
+                update.effective_chat.id, article, generate_post_button=True
             )
 
     async def next_image_handler(
@@ -370,11 +387,7 @@ class TelegramBotService(ITelegramBotService):
         await update.message.reply_text(f"Your user ID is: {user_id}")
 
     async def send_article_to_admin(self, article: NewsArticle) -> None:
-        bot = Bot(token=self.token)
-        await bot.send_message(
-            chat_id=self.admin_chat_id,
-            text=f"*{article.title}*\n{article.source}",
-        )
+        await self.send_formatted_article(self.admin_chat_id, article)
 
     async def add_source(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE

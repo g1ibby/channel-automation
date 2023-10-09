@@ -46,7 +46,11 @@ def bot() -> None:
         assistant,
         image_search,
     )
+    print("Starting the crawler...")
+    news_crawler_service = NewsCrawlerService(es_repo, repository, telegram_bot_service)
+    news_crawler_service.start_crawling()
 
+    print("Starting the bot...")
     telegram_bot_service.run()
 
 
