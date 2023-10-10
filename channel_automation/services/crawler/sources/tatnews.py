@@ -3,9 +3,9 @@ from typing import Any, Optional
 import json
 from dataclasses import fields
 
+import requests
 import trafilatura
 from bs4 import BeautifulSoup
-from requests import request
 
 from channel_automation.models import NewsArticle
 
@@ -36,7 +36,7 @@ class TatnewsCrawler:
     def crawl_news_links(self) -> list[str]:
         news_links = []
         url = "https://www.tatnews.org/category/thailand-tourism-news/"
-        response = request.get(url)
+        response = requests.get(url)
         if response:
             print(f"Response: {response.status_code}")
             lnks = self.extract_news_links(response.text)

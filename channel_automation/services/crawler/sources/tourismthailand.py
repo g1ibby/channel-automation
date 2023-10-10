@@ -4,8 +4,8 @@ import json
 import time
 from dataclasses import fields
 
+import requests
 import trafilatura
-from requests import get
 
 from channel_automation.models import NewsArticle
 
@@ -40,7 +40,7 @@ class TourismthailandCrawler:
     def fetch_json_from_api(self, url: str) -> dict:
         timestamp = str(int(time.time() * 1000))
         full_url = f"{url}&timestamp={timestamp}"
-        response = get(full_url, headers=headers)
+        response = requests.get(full_url, headers=headers)
         if response.status_code == 200:
             return json.loads(response.text)
         else:

@@ -1,10 +1,9 @@
-from typing import List
-
 from telegram import (
     Bot,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InputMediaPhoto,
+    ReplyKeyboardMarkup,
     Update,
 )
 from telegram.ext import (
@@ -14,6 +13,7 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     MessageHandler,
+    filters,
 )
 from telegram.ext.filters import BaseFilter
 
@@ -50,12 +50,15 @@ class TelegramBotService(ITelegramBotService):
     def run(self) -> None:
         app = ApplicationBuilder().token(self.token).build()
         app.add_handler(ChatMemberHandler(self.on_my_chat_member))
+        app.add_handler(CommandHandler("start", self.start))
         app.add_handler(CommandHandler("addsource", self.add_source))
         app.add_handler(CommandHandler("disablesource", self.disable_source))
-        app.add_handler(CommandHandler("activesources", self.get_active_sources))
         app.add_handler(CommandHandler("myid", self.get_user_id))
-        app.add_handler(CommandHandler("latestnews", self.get_latest_news))
-        app.add_handler(CommandHandler("channels", self.show_channels))
+
+        app.add_handler(
+            MessageHandler(filters.TEXT & ~filters.COMMAND, self.button_press)
+        )
+
         app.add_handler(
             CallbackQueryHandler(self.generate_post_callback, pattern="^generate_post:")
         )
@@ -74,10 +77,30 @@ class TelegramBotService(ITelegramBotService):
         app.add_handler(
             CallbackQueryHandler(self.next_image_handler, pattern="^next_image:")
         )
-        # app.add_handler(MessageHandler(Filters.reply, self.handle_reply))
         app.add_handler(MessageHandler(PhotoReplyFilter(), self.handle_photo_reply))
 
         app.run_polling()
+
+    async def button_press(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        user_input = update.message.text
+        if user_input == "Add Source":
+            await self.add_source(update, context)
+        elif user_input == "Disable Source":
+            await self.disable_source(update, context)
+        elif user_input == "Active Sources":
+            await self.get_active_sources(update, context)
+        elif user_input == "My ID":
+            await self.get_user_id(update, context)
+        elif user_input == "Latest News":
+            await self.get_latest_news(update, context)
+        elif user_input == "Channels":
+            await self.show_channels(update, context)
+        else:
+            await update.message.reply_text(
+                "I'm not sure how to process that. Please select an option from the menu."
+            )
 
     @staticmethod
     def create_original_keyboard(
@@ -102,6 +125,16 @@ class TelegramBotService(ITelegramBotService):
                 ],
             ]
         )
+
+    @staticmethod
+    def create_start_menu() -> ReplyKeyboardMarkup:
+        return ReplyKeyboardMarkup(
+            [["Active Sources"], ["Latest News"], ["Channels"]], resize_keyboard=True
+        )  # `resize_keyboard=True` makes the keyboard fit the button sizes.
+
+    async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        keyboard = self.create_start_menu()
+        await update.message.reply_text("Welcome to the bot!", reply_markup=keyboard)
 
     @staticmethod
     def create_channel_keyboard(
@@ -410,6 +443,8 @@ class TelegramBotService(ITelegramBotService):
     async def get_active_sources(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
+        print("get_active_sources")
         active_sources = self.repo.get_active_sources()
         response = "\n".join([source.link for source in active_sources])
+        print(response)
         await update.message.reply_text(response)
