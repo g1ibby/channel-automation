@@ -2,7 +2,6 @@ from telegram import (
     Bot,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
-    InputMediaPhoto,
     ReplyKeyboardMarkup,
     Update,
 )
@@ -22,12 +21,28 @@ from channel_automation.interfaces.bot_service_interface import ITelegramBotServ
 from channel_automation.interfaces.es_repository_interface import IESRepository
 from channel_automation.interfaces.pg_repository_interface import IRepository
 from channel_automation.interfaces.search_interface import IImageSearch
-from channel_automation.models import ChannelInfo, NewsArticle, Source
+from channel_automation.models import Admin, ChannelInfo, NewsArticle, Source
 
 
 class PhotoReplyFilter(BaseFilter):
     def filter(self, message):
         return message.photo is not None and message.reply_to_message is not None
+
+
+def admin_required(func):
+    async def wrapped(
+        instance, update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs
+    ):
+        # Check if 'is_admin' is not set in user_data, then determine and set it
+        if "is_admin" not in context.user_data:
+            await instance.is_user_admin(update, context)
+
+        if not context.user_data.get("is_admin"):
+            await update.message.reply_text("You do not have access to this bot.")
+            return
+        return await func(instance, update, context, *args, **kwargs)
+
+    return wrapped
 
 
 class TelegramBotService(ITelegramBotService):
@@ -41,16 +56,28 @@ class TelegramBotService(ITelegramBotService):
         search: IImageSearch,
     ):
         self.token = token
-        self.admin_chat_id = admin_chat_id
+        self.secret_key = "maled11"
         self.repo = repository
         self.es_repo = es_repo
         self.assistant = assistant
         self.search = search
+        self.admin_chat_ids = [admin.user_id for admin in self.repo.get_active_admins()]
+
+    async def is_user_admin(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> bool:
+        user_id = update.effective_user.id
+        is_admin = str(user_id) in self.admin_chat_ids
+        context.user_data["is_admin"] = is_admin
+        return is_admin
 
     def run(self) -> None:
         app = ApplicationBuilder().token(self.token).build()
         app.add_handler(ChatMemberHandler(self.on_my_chat_member))
         app.add_handler(CommandHandler("start", self.start))
+        app.add_handler(
+            MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_secret_key)
+        )
         app.add_handler(CommandHandler("addsource", self.add_source))
         app.add_handler(CommandHandler("disablesource", self.disable_source))
         app.add_handler(CommandHandler("myid", self.get_user_id))
@@ -133,8 +160,34 @@ class TelegramBotService(ITelegramBotService):
         )  # `resize_keyboard=True` makes the keyboard fit the button sizes.
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        user_id = str(update.effective_user.id)
+        if user_id not in self.admin_chat_ids:
+            await update.message.reply_text(
+                "Please enter the secret key to access this bot."
+            )
+            return
         keyboard = self.create_start_menu()
         await update.message.reply_text("Welcome to the bot!", reply_markup=keyboard)
+
+    async def handle_secret_key(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        print("handle_secret_key")
+        if update.message.text == self.secret_key:
+            print("1")
+            user_id = str(update.effective_user.id)
+            print(user_id)
+            # Add this user_id to the database as admin
+            self.repo.add_admin(Admin(user_id=user_id, is_active=True))
+            # Update the local list of admin chat ids
+            self.admin_chat_ids.append(user_id)
+            await update.message.reply_text("You are now an admin!")
+            keyboard = self.create_start_menu()
+            await update.message.reply_text(
+                "Welcome to the bot!", reply_markup=keyboard
+            )
+        else:
+            await update.message.reply_text("Incorrect key!")
 
     @staticmethod
     def create_channel_keyboard(
@@ -209,6 +262,7 @@ class TelegramBotService(ITelegramBotService):
                     reply_markup=keyboard,
                 )
 
+    @admin_required
     async def show_channels(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
@@ -380,6 +434,7 @@ class TelegramBotService(ITelegramBotService):
 
         await query.edit_message_reply_markup(reply_markup=keyboard)
 
+    @admin_required
     async def get_latest_news(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
@@ -422,6 +477,7 @@ class TelegramBotService(ITelegramBotService):
     async def send_article_to_admin(self, article: NewsArticle) -> None:
         await self.send_formatted_article(self.admin_chat_id, article)
 
+    @admin_required
     async def add_source(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
@@ -430,6 +486,7 @@ class TelegramBotService(ITelegramBotService):
         self.repo.add_source(source)
         await update.message.reply_text(f"Source added: {link}")
 
+    @admin_required
     async def disable_source(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
@@ -440,11 +497,10 @@ class TelegramBotService(ITelegramBotService):
         else:
             await update.message.reply_text("No such source found.")
 
+    @admin_required
     async def get_active_sources(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
-        print("get_active_sources")
         active_sources = self.repo.get_active_sources()
         response = "\n".join([source.link for source in active_sources])
-        print(response)
         await update.message.reply_text(response)

@@ -3,6 +3,7 @@ from typing import List
 from abc import ABC, abstractmethod
 
 from channel_automation.models import ChannelInfo
+from channel_automation.models.admin import Admin
 from channel_automation.models.source import Source
 
 
@@ -70,5 +71,28 @@ class IRepository(ABC):
 
         Returns:
             List[ChannelInfo]: A list of all channels.
+        """
+        pass
+
+    @abstractmethod
+    def add_admin(self, admin: Admin) -> Admin:
+        """
+        Add a new admin to the repository.
+
+        Args:
+            admin (Admin): The admin to add.
+
+        Returns:
+            Admin: The added admin.
+        """
+        pass
+
+    @abstractmethod
+    def get_active_admins(self) -> list[Admin]:
+        """
+        Get all active admins in the repository.
+
+        Returns:
+            List[Admin]: A list of active admins.
         """
         pass
