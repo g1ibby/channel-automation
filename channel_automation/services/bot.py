@@ -172,13 +172,13 @@ class TelegramBotService(ITelegramBotService):
     async def handle_secret_key(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
-        print("handle_secret_key")
         if update.message.text == self.secret_key:
-            print("1")
             user_id = str(update.effective_user.id)
-            print(user_id)
+            username = (
+                update.effective_user.username or update.effective_user.first_name
+            )
             # Add this user_id to the database as admin
-            self.repo.add_admin(Admin(user_id=user_id, is_active=True))
+            self.repo.add_admin(Admin(user_id=user_id, name=username, is_active=True))
             # Update the local list of admin chat ids
             self.admin_chat_ids.append(user_id)
             await update.message.reply_text("You are now an admin!")

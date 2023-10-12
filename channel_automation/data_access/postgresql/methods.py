@@ -88,17 +88,24 @@ class Repository(IRepository):
 
     def add_admin(self, admin: Admin) -> Admin:
         with self._get_session() as session:
-            existing_admin = (
-                session.query(Admin)
-                .filter(Admin.user_id == admin.user_id)
-                .one_or_none()
-            )
-            if not existing_admin:
-                session.add(admin)
-                session.commit()
-                session.refresh(admin)
-                return admin
-            return existing_admin
+            try:
+                session.begin()
+                existing_admin = (
+                    session.query(Admin)
+                    .filter(Admin.user_id == admin.user_id)
+                    .one_or_none()
+                )
+                if not existing_admin:
+                    session.add(admin)
+                    session.commit()
+                    session.refresh(admin)
+                    return admin
+                return existing_admin
+            except Exception as e:
+                # Print any exception for debugging
+                print("Exception occurred:", str(e))
+                session.rollback()
+                raise
 
     def get_active_admins(self) -> list[Admin]:
         with self._get_session() as session:
