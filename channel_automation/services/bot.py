@@ -49,7 +49,6 @@ class TelegramBotService(ITelegramBotService):
     def __init__(
         self,
         token: str,
-        admin_chat_id: str,
         repository: IRepository,
         es_repo: IESRepository,
         assistant: IAssistant,

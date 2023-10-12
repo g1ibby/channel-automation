@@ -19,7 +19,6 @@ console = Console()
 
 class Config(BaseSettings):
     TELEGRAM_BOT_TOKEN: str
-    ADMIN_CHAT_ID: str
     DATABASE_URL: str = "postgresql://user:password@localhost/automation"
     ES_HOST: str = "localhost"
     ES_PORT: int = 9200
@@ -40,15 +39,14 @@ def bot() -> None:
     image_search = BingImageSearch()
     telegram_bot_service = TelegramBotService(
         config.TELEGRAM_BOT_TOKEN,
-        config.ADMIN_CHAT_ID,
         repository,
         es_repo,
         assistant,
         image_search,
     )
-    # print("Starting the crawler...")
-    # news_crawler_service = NewsCrawlerService(es_repo, repository, telegram_bot_service)
-    # news_crawler_service.start_crawling()
+    print("Starting the crawler...")
+    news_crawler_service = NewsCrawlerService(es_repo, repository, telegram_bot_service)
+    news_crawler_service.start_crawling()
 
     print("Starting the bot...")
     telegram_bot_service.run()
