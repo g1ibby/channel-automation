@@ -1,5 +1,4 @@
 from telegram import (
-    Bot,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     ReplyKeyboardMarkup,
@@ -11,6 +10,7 @@ from telegram.ext import (
     ChatMemberHandler,
     CommandHandler,
     ContextTypes,
+    ConversationHandler,
     MessageHandler,
     filters,
 )
@@ -22,6 +22,8 @@ from channel_automation.interfaces.es_repository_interface import IESRepository
 from channel_automation.interfaces.pg_repository_interface import IRepository
 from channel_automation.interfaces.search_interface import IImageSearch
 from channel_automation.models import Admin, ChannelInfo, NewsArticle, Source
+
+AWAITING_SECRET_KEY, AWAITING_COMMAND = range(2)
 
 
 class PhotoReplyFilter(BaseFilter):
@@ -73,10 +75,16 @@ class TelegramBotService(ITelegramBotService):
     def run(self) -> None:
         app = ApplicationBuilder().token(self.token).build()
         app.add_handler(ChatMemberHandler(self.on_my_chat_member))
-        app.add_handler(CommandHandler("start", self.start))
-        app.add_handler(
-            MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_secret_key)
+        conv_handler = ConversationHandler(
+            entry_points=[CommandHandler("start", self.start)],
+            states={
+                AWAITING_SECRET_KEY: [
+                    MessageHandler(filters.TEXT, self.handle_secret_key)
+                ],
+            },
+            fallbacks=[],  # Implement a cancel function if needed
         )
+        app.add_handler(conv_handler)
         app.add_handler(CommandHandler("addsource", self.add_source))
         app.add_handler(CommandHandler("disablesource", self.disable_source))
         app.add_handler(CommandHandler("myid", self.get_user_id))
@@ -158,19 +166,21 @@ class TelegramBotService(ITelegramBotService):
             [["Active Sources"], ["Latest News"], ["Channels"]], resize_keyboard=True
         )  # `resize_keyboard=True` makes the keyboard fit the button sizes.
 
-    async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         user_id = str(update.effective_user.id)
         if user_id not in self.admin_chat_ids:
             await update.message.reply_text(
                 "Please enter the secret key to access this bot."
             )
-            return
+            return AWAITING_SECRET_KEY
+
         keyboard = self.create_start_menu()
         await update.message.reply_text("Welcome to the bot!", reply_markup=keyboard)
+        return ConversationHandler.END
 
     async def handle_secret_key(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ) -> None:
+    ) -> int:
         if update.message.text == self.secret_key:
             user_id = str(update.effective_user.id)
             username = (
@@ -185,8 +195,10 @@ class TelegramBotService(ITelegramBotService):
             await update.message.reply_text(
                 "Welcome to the bot!", reply_markup=keyboard
             )
+            return ConversationHandler.END
         else:
             await update.message.reply_text("Incorrect key!")
+            return AWAITING_SECRET_KEY
 
     @staticmethod
     def create_channel_keyboard(
