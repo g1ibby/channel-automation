@@ -1,14 +1,12 @@
 import asyncio
 
-from channel_automation.services.crawler.sources.tourismthailand import (
-    TourismthailandCrawler,
-)
+from channel_automation.services.crawler.sources.bangkokpost import BangkokpostCrawler
 
 # To run the crawler
 if __name__ == "__main__":
 
     async def main():
-        crawler = TourismthailandCrawler()
+        crawler = BangkokpostCrawler()
         articles = await crawler.crawl()
         print(articles)
 
