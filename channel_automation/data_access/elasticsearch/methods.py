@@ -24,6 +24,13 @@ class ESRepository(IESRepository):
                 )
                 if es.ping():
                     print("Elasticsearch connected.")
+
+                    # Check if index exists
+                    if not es.indices.exists(index=self.index):
+                        # Create index
+                        es.indices.create(index=self.index, ignore=400)
+                        print(f"Index '{self.index}' created.")
+
                     return es
                 else:
                     print("Elasticsearch connection failed.")
