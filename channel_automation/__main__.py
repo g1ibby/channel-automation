@@ -1,3 +1,5 @@
+import asyncio
+
 import typer
 from pydantic import BaseSettings
 from rich.console import Console
@@ -68,19 +70,15 @@ def crawler() -> None:
         assistant,
         image_search,
     )
+    asyncio.run(crawler_logic(es_repo, repo, telegram_bot_service))
 
-    # Initialize the NewsCrawlerService with the news_article_repository instance
+
+async def crawler_logic(es_repo, repo, telegram_bot_service):
     news_crawler_service = NewsCrawlerService(es_repo, repo, telegram_bot_service)
-    news_crawler_service.start_crawling()
+    await news_crawler_service.start_crawling()
 
-    # To keep the main thread alive, you can use an infinite loop or use an event to wait
-    import time
-
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        console.log("Stopping the scheduler...")
+    while True:
+        await asyncio.sleep(1)
 
 
 if __name__ == "__main__":
