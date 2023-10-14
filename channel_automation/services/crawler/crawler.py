@@ -65,7 +65,7 @@ class NewsCrawlerService:
             "interval",
             hours=6,
             args=[run_crawl()],  # Pass the new async function call
-            replace_existing=True,
+            replace_existing=False,
         )
 
         print(f"Scheduled crawling for {url}")
