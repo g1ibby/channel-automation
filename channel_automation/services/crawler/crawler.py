@@ -37,9 +37,7 @@ class NewsCrawlerService:
         self.scheduler.start()
 
     def start_crawling(self):
-        self.scheduler.add_job(
-            self.refresh_sources, next_run_time=datetime.datetime.now()
-        )
+        self.refresh_sources()
         self.scheduler.add_job(
             self.refresh_sources,
             "interval",

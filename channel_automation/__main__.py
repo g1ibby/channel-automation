@@ -44,9 +44,9 @@ def bot() -> None:
         assistant,
         image_search,
     )
-    print("Starting the crawler...")
-    news_crawler_service = NewsCrawlerService(es_repo, repository, telegram_bot_service)
-    news_crawler_service.start_crawling()
+    # print("Starting the crawler...")
+    # news_crawler_service = NewsCrawlerService(es_repo, repository, telegram_bot_service)
+    # news_crawler_service.start_crawling()
 
     print("Starting the bot...")
     telegram_bot_service.run()
@@ -59,9 +59,18 @@ def crawler() -> None:
 
     es_repo = ESRepository(host=config.ES_HOST, port=config.ES_PORT)
     repo = Repository(config.DATABASE_URL)
+    assistant = Assistant(config.ASSISTANT_TOKEN)
+    image_search = BingImageSearch()
+    telegram_bot_service = TelegramBotService(
+        config.TELEGRAM_BOT_TOKEN,
+        repo,
+        es_repo,
+        assistant,
+        image_search,
+    )
 
     # Initialize the NewsCrawlerService with the news_article_repository instance
-    news_crawler_service = NewsCrawlerService(es_repo, repo)
+    news_crawler_service = NewsCrawlerService(es_repo, repo, telegram_bot_service)
     news_crawler_service.start_crawling()
 
     # To keep the main thread alive, you can use an infinite loop or use an event to wait

@@ -1,4 +1,5 @@
 from telegram import (
+    Bot,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     ReplyKeyboardMarkup,
@@ -223,7 +224,10 @@ class TelegramBotService(ITelegramBotService):
         return f"*{article.title}*\n[Read article]({article.source})"
 
     async def send_formatted_article(
-        self, chat_id: str, article: NewsArticle, generate_post_button: bool = True
+        self,
+        chat_ids: list[str],
+        article: NewsArticle,
+        generate_post_button: bool = True,
     ) -> None:
         bot = Bot(token=self.token)
         formatted_article = self.format_news_article(article)
@@ -240,12 +244,13 @@ class TelegramBotService(ITelegramBotService):
                 ]
             )
 
-        await bot.send_message(
-            chat_id=chat_id,
-            text=formatted_article,
-            reply_markup=reply_markup,
-            parse_mode="Markdown",
-        )
+        for admin_chat_id in chat_ids:
+            await bot.send_message(
+                chat_id=admin_chat_id,
+                text=formatted_article,
+                reply_markup=reply_markup,
+                parse_mode="Markdown",
+            )
 
     async def handle_photo_reply(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -288,6 +293,11 @@ class TelegramBotService(ITelegramBotService):
 
         await update.message.reply_text(response)
 
+    async def send_message_to_all_admins(self, message_text: str):
+        bot = Bot(token=self.token)
+        for admin_chat_id in self.admin_chat_ids:
+            await bot.send_message(chat_id=admin_chat_id, text=message_text)
+
     # Define a function to handle the ChatMemberUpdated event
     async def on_my_chat_member(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -306,10 +316,9 @@ class TelegramBotService(ITelegramBotService):
             )
             self.repo.add_channel(channel)
 
-            await bot.send_message(
-                chat_id=self.admin_chat_id,
-                text=f"I've been added as an admin in the channel: {update.my_chat_member.chat.title}!",
-            )
+            # Send a message to all admins
+            message_text = f"I've been added as an admin in the channel: {update.my_chat_member.chat.title}!"
+            await self.send_message_to_all_admins(message_text)
 
     async def process_article_and_send(
         self, context: ContextTypes.DEFAULT_TYPE, query, article_id: str
@@ -486,7 +495,7 @@ class TelegramBotService(ITelegramBotService):
         await update.message.reply_text(f"Your user ID is: {user_id}")
 
     async def send_article_to_admin(self, article: NewsArticle) -> None:
-        await self.send_formatted_article(self.admin_chat_id, article)
+        await self.send_formatted_article(self.admin_chat_ids, article)
 
     @admin_required
     async def add_source(
