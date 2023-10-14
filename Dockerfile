@@ -15,6 +15,7 @@ FROM python:3.11-alpine
 
 WORKDIR /app
 ENV PYTHONPATH=/app
+ENV TZ=Asia/Bangkok
 
 # Copy only the installed Python packages
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages

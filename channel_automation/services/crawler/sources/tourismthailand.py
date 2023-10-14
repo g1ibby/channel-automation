@@ -4,13 +4,13 @@ import json
 import time
 from dataclasses import fields
 
-import requests
+import aiohttp
 import trafilatura
 
 from channel_automation.models import NewsArticle
 
 
-def news_article_from_json(json_data: dict[str, Any]) -> NewsArticle:
+async def news_article_from_json(json_data: dict[str, Any]) -> NewsArticle:
     init_args = {
         field.name: json_data.get(field.metadata.get("json_key", field.name))
         for field in fields(NewsArticle)
@@ -37,60 +37,63 @@ headers = {
 
 
 class TourismthailandCrawler:
-    def fetch_json_from_api(self, url: str) -> dict:
+    async def fetch_json_from_api(self, url: str) -> dict:
         timestamp = str(int(time.time() * 1000))
         full_url = f"{url}&timestamp={timestamp}"
-        response = requests.get(full_url, headers=headers)
-        if response.status_code == 200:
-            return json.loads(response.text)
-        else:
-            print(f"Error: {response.status_code}")
-            return {}
+        async with aiohttp.ClientSession() as session:
+            async with session.get(full_url, headers=headers) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    print(f"Error: {response.status}")
+                    return {}
 
-    def get_tourismthailand_breaking_news_links(self) -> list[str]:
+    async def get_tourismthailand_breaking_news_links(self) -> list[str]:
         url = "https://api.tourismthailand.org/api/home/get_breaking_news?Language=en"
-        parsed_json = self.fetch_json_from_api(url)
+        parsed_json = await self.fetch_json_from_api(url)
         return [news["url"] for news in parsed_json["result"]]
 
-    def get_tourismthailand_announcement_links(self) -> list[str]:
+    async def get_tourismthailand_announcement_links(self) -> list[str]:
         url = (
             "https://api.tourismthailand.org/api/home/get_news_announcement?Language=en"
         )
-        parsed_json = self.fetch_json_from_api(url)
+        parsed_json = await self.fetch_json_from_api(url)
         return [
             f"https://www.tourismthailand.org/Articles/{announcement['slug']}"
             for announcement in parsed_json["result"]
         ]
 
-    def crawl(self) -> list[NewsArticle]:
+    async def crawl(self) -> list[NewsArticle]:
         extracted_articles = []
-        data1 = self.get_tourismthailand_breaking_news_links()
-        data2 = self.get_tourismthailand_announcement_links()
+        data1 = await self.get_tourismthailand_breaking_news_links()
+        data2 = await self.get_tourismthailand_announcement_links()
 
         for result in data1 + data2:
-            article = self.extract_content(result)
+            article = await self.extract_content(result)
             if article:
                 extracted_articles.append(article)
 
         return extracted_articles
 
-    def extract_content(self, url: str) -> Optional[NewsArticle]:
-        downloaded = trafilatura.fetch_url(url)
-
-        try:
-            extracted_data = trafilatura.extract(
-                downloaded,
-                include_comments=False,
-                with_metadata=True,
-                favor_precision=True,
-                deduplicate=True,
-                output_format="json",
-            )
-            if extracted_data is not None:
-                data = json.loads(extracted_data)
-                article = news_article_from_json(data)
-                return article
-        except Exception as e:
-            print(f"Error extracting content: {e}")
+    async def extract_content(self, url: str) -> Optional[NewsArticle]:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    downloaded = await response.read()
+                    try:
+                        extracted_data = trafilatura.extract(
+                            downloaded,
+                            include_comments=False,
+                            with_metadata=True,
+                            favor_precision=True,
+                            deduplicate=True,
+                            output_format="json",
+                        )
+                        if extracted_data:
+                            data = json.loads(extracted_data)
+                            article = await news_article_from_json(data)
+                            return article
+                    except Exception as e:
+                        print(f"Error extracting content: {e}")
 
         return None

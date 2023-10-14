@@ -1,6 +1,5 @@
 import datetime
 import logging
-from dataclasses import fields
 
 import pytz
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -9,7 +8,6 @@ from channel_automation.data_access.elasticsearch.methods import ESRepository
 from channel_automation.data_access.postgresql.methods import Repository
 from channel_automation.interfaces.bot_service_interface import ITelegramBotService
 from channel_automation.services.crawler.sources.bangkokpost import BangkokpostCrawler
-from channel_automation.services.crawler.sources.common import CommonCrawler
 from channel_automation.services.crawler.sources.tatnews import TatnewsCrawler
 from channel_automation.services.crawler.sources.tourismthailand import (
     TourismthailandCrawler,
@@ -60,21 +58,20 @@ class NewsCrawlerService:
         print(f"Scheduled crawling for {url}")
 
     async def crawl_and_extract_news_articles(self, main_page: str):
-        print(f"crawl and extract {main_page}")
+        print(f"Crawling and extracting articles from {main_page}")
         extracted_articles = []
+
         if "bangkokpost.com" in main_page:
             crawler = BangkokpostCrawler()
-            extracted_articles = crawler.crawl()
         elif "tatnews.org" in main_page:
             crawler = TatnewsCrawler()
-            extracted_articles = crawler.crawl()
         elif "tourismthailand.org" in main_page:
             crawler = TourismthailandCrawler()
-            extracted_articles = crawler.crawl()
         else:
-            common_crawler = CommonCrawler(main_page)
-            extracted_articles = common_crawler.crawl()
+            print(f"Unknown source: {main_page}")
+            return None
 
+        extracted_articles = await crawler.crawl()
         for article in extracted_articles:
             a = self.news_article_repository.save_news_article(article)
             if a is not None:

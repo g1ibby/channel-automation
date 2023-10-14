@@ -1,16 +1,16 @@
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 import json
 from dataclasses import fields
 
-import requests
+import aiohttp
 import trafilatura
 from bs4 import BeautifulSoup
 
 from channel_automation.models import NewsArticle
 
 
-def news_article_from_json(json_data: dict[str, Any]) -> NewsArticle:
+async def news_article_from_json(json_data: dict[str, Any]) -> NewsArticle:
     init_args = {
         field.name: json_data.get(field.metadata.get("json_key", field.name))
         for field in fields(NewsArticle)
@@ -40,29 +40,29 @@ class BangkokpostCrawler:
     def __init__(self) -> None:
         pass
 
-    def crawl(self) -> list[NewsArticle]:
+    async def crawl(self) -> list[NewsArticle]:
         print("Crawling Bangkok Post")
-        news_links = self.crawl_news_links()
+        news_links = await self.crawl_news_links()
         print(news_links)
         extracted_articles = []
         for link in news_links:
             print(f"Extracting content from {link}")
-            article = self.extract_content(link)
+            article = await self.extract_content(link)
             if article:
                 extracted_articles.append(article)
 
         return extracted_articles
 
-    def crawl_news_links(self) -> list[str]:
+    async def crawl_news_links(self) -> list[str]:
         news_links = []
-        # Just take the first page for now. We don't have a lot of new articles
-        for page in range(1, 2):
-            url = f"https://www.bangkokpost.com/v3/list_content/life/travel?page={page}"
-            response = requests.get(url, headers=headers)
-            if response:
-                print(f"Response: {response.status_code}")
-                lnks = self.extract_news_links(response.text)
-                news_links.extend(lnks)
+        async with aiohttp.ClientSession() as session:
+            for page in range(1, 2):
+                url = f"https://www.bangkokpost.com/v3/list_content/life/travel?page={page}"
+                async with session.get(url, headers=headers) as response:
+                    if response.status == 200:
+                        html_content = await response.text()
+                        lnks = self.extract_news_links(html_content)
+                        news_links.extend(lnks)
 
         return news_links
 
@@ -83,23 +83,23 @@ class BangkokpostCrawler:
 
         return specific_news_links
 
-    def extract_content(self, url: str) -> Optional[NewsArticle]:
-        downloaded = trafilatura.fetch_url(url)
-
-        try:
-            extracted_data = trafilatura.extract(
-                downloaded,
-                include_comments=False,
-                with_metadata=True,
-                favor_precision=True,
-                deduplicate=True,
-                output_format="json",
-            )
-            if extracted_data is not None:
-                data = json.loads(extracted_data)
-                article = news_article_from_json(data)
-                return article
-        except Exception as e:
-            print(f"Error extracting content: {e}")
-
-        return None
+    async def extract_content(self, url: str) -> Optional[NewsArticle]:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    downloaded = await response.read()
+                    try:
+                        extracted_data = trafilatura.extract(
+                            downloaded,
+                            include_comments=False,
+                            with_metadata=True,
+                            favor_precision=True,
+                            deduplicate=True,
+                            output_format="json",
+                        )
+                        if extracted_data is not None:
+                            data = json.loads(extracted_data)
+                            article = await news_article_from_json(data)
+                            return article
+                    except Exception as e:
+                        print(f"Error extracting content: {e}")
