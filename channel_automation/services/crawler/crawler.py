@@ -92,5 +92,3 @@ class NewsCrawlerService:
         # Remove disabled sources
         for source in current_sources - new_sources:
             self.scheduler.remove_job(source)
-
-        print(self.scheduler.state)
