@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from contextlib import contextmanager
 
@@ -82,9 +82,35 @@ class Repository(IRepository):
                 session.delete(channel)
                 session.commit()
 
+    def update_channel(self, channel: ChannelInfo) -> ChannelInfo:
+        with self._get_session() as session:
+            existing_channel = (
+                session.query(ChannelInfo)
+                .filter(ChannelInfo.id == channel.id)
+                .one_or_none()
+            )
+            if existing_channel:
+                if channel.title:  # Check if title is not empty
+                    existing_channel.title = channel.title
+                if channel.bottom_text:  # Check if bottom_text is not empty
+                    existing_channel.bottom_text = channel.bottom_text
+                session.commit()
+                session.refresh(existing_channel)
+                return existing_channel
+            else:
+                raise ValueError(f"Channel with ID {channel.id} does not exist.")
+
     def get_all_channels(self) -> list[ChannelInfo]:
         with self._get_session() as session:
             return session.query(ChannelInfo).all()
+
+    def get_channel_by_id(self, channel_id: str) -> Optional[ChannelInfo]:
+        with self._get_session() as session:
+            return (
+                session.query(ChannelInfo)
+                .filter(ChannelInfo.id == channel_id)
+                .one_or_none()
+            )
 
     def add_admin(self, admin: Admin) -> Admin:
         with self._get_session() as session:

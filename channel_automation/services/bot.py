@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from telegram import (
     Bot,
     InlineKeyboardButton,
@@ -24,7 +26,7 @@ from channel_automation.interfaces.pg_repository_interface import IRepository
 from channel_automation.interfaces.search_interface import IImageSearch
 from channel_automation.models import Admin, ChannelInfo, NewsArticle, Source
 
-AWAITING_SECRET_KEY, AWAITING_COMMAND = range(2)
+AWAITING_SECRET_KEY, EDITING_BUTTON_TEXT = range(2)
 
 
 class PhotoReplyFilter(BaseFilter):
@@ -83,9 +85,23 @@ class TelegramBotService(ITelegramBotService):
                     MessageHandler(filters.TEXT, self.handle_secret_key)
                 ],
             },
-            fallbacks=[],  # Implement a cancel function if needed
+            fallbacks=[],
         )
         app.add_handler(conv_handler)
+
+        edit_conv_handler = ConversationHandler(
+            entry_points=[
+                CallbackQueryHandler(self.edit_botton_text, pattern="^edit_text:")
+            ],
+            states={
+                EDITING_BUTTON_TEXT: [
+                    MessageHandler(filters.TEXT, self.save_channel_botton_text)
+                ],
+            },
+            fallbacks=[],
+            per_message=False,
+        )
+        app.add_handler(edit_conv_handler)
         app.add_handler(CommandHandler("addsource", self.add_source))
         app.add_handler(CommandHandler("disablesource", self.disable_source))
         app.add_handler(CommandHandler("myid", self.get_user_id))
@@ -278,6 +294,34 @@ class TelegramBotService(ITelegramBotService):
                     reply_markup=keyboard,
                 )
 
+    # Callback for edit button click
+    async def edit_botton_text(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> int:
+        query = update.callback_query
+        _, channel_id = query.data.split(":", 1)
+
+        await query.answer()
+        await query.message.reply_text("Enter new botton text:")
+
+        # Save channel id to retrieve later
+        context.user_data["channel_id"] = channel_id
+
+        return EDITING_BUTTON_TEXT
+
+    async def save_channel_botton_text(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> int:
+        new_text = update.message.text
+        channel_id = context.user_data["channel_id"]
+
+        channel = ChannelInfo(id=channel_id, bottom_text=new_text)
+        self.repo.update_channel(channel)
+
+        await update.message.reply_text("Botton text updated!")
+
+        return ConversationHandler.END
+
     @admin_required
     async def show_channels(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -285,13 +329,28 @@ class TelegramBotService(ITelegramBotService):
         channels = self.repo.get_all_channels()
 
         if not channels:
-            response = "No channels available."
-        else:
-            response = "Available channels:\n"
-            for channel in channels:
-                response += f"{channel.title} (ID: {channel.id})\n"
+            await update.message.reply_text("No channels available.")
+            return
+        for channel in channels:
+            keyboard = InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton(
+                            "Edit botton text", callback_data=f"edit_text:{channel.id}"
+                        )
+                    ]
+                ]
+            )
 
-        await update.message.reply_text(response)
+            bottom_text = channel.bottom_text or "No text"
+
+            message_text = f"{channel.title} (ID: {channel.id})\n\n" f"{bottom_text}"
+
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=message_text,
+                reply_markup=keyboard,
+            )
 
     async def send_message_to_all_admins(self, message_text: str):
         bot = Bot(token=self.token)
@@ -409,6 +468,9 @@ class TelegramBotService(ITelegramBotService):
         query = update.callback_query
         _, article_id, channel_id = query.data.split(":", 2)
 
+        # Retrieve the ChannelInfo by channel_id
+        channel_info: Optional[ChannelInfo] = self.repo.get_channel_by_id(channel_id)
+
         # Retrieve the image URL and caption from the message
         message = query.message
         if message.photo:
@@ -416,6 +478,10 @@ class TelegramBotService(ITelegramBotService):
         else:
             image_url = None
         caption = message.caption_markdown
+
+        # Add bottom_text from ChannelInfo to the caption if it exists
+        if channel_info and channel_info.bottom_text:
+            caption = f"{caption}\n\n{channel_info.bottom_text}"
 
         # Publish the article in the specified channel
         bot = Bot(token=self.token)

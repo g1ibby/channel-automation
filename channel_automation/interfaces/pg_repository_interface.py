@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from abc import ABC, abstractmethod
 
@@ -65,12 +65,38 @@ class IRepository(ABC):
         pass
 
     @abstractmethod
+    def update_channel(self, channel: ChannelInfo) -> ChannelInfo:
+        """
+        Update an existing channel in the repository.
+
+        Args:
+            channel (ChannelInfo): The channel information to update.
+
+        Returns:
+            ChannelInfo: The updated channel.
+        """
+        pass
+
+    @abstractmethod
     def get_all_channels(self) -> list[ChannelInfo]:
         """
         Get all channels in the repository.
 
         Returns:
             List[ChannelInfo]: A list of all channels.
+        """
+        pass
+
+    @abstractmethod
+    def get_channel_by_id(self, channel_id: str) -> Optional[ChannelInfo]:
+        """
+        Get a channel by its ID from the repository.
+
+        Args:
+            channel_id (str): The ID of the channel to retrieve.
+
+        Returns:
+            Optional[ChannelInfo]: The retrieved channel, or None if not found.
         """
         pass
 
