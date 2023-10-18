@@ -395,7 +395,8 @@ class TelegramBotService(ITelegramBotService):
             self.es_repo.update_news_article(processed_article)
 
             await query.message.reply_text(
-                "Processing complete! Here's the generated post:"
+                f"Processing complete! Here's the generated post for article: *{processed_article.title}*",
+                parse_mode="Markdown",
             )
             keyboard = self.create_original_keyboard(
                 article_id, processed_article.images_search
