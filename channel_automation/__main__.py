@@ -8,7 +8,7 @@ from channel_automation.assistant.methods import Assistant
 from channel_automation.data_access.elasticsearch.methods import ESRepository
 from channel_automation.data_access.postgresql.methods import Repository
 from channel_automation.search.images import BingImageSearch
-from channel_automation.services.bot import TelegramBotService
+from channel_automation.services.bot.bot import TelegramBotService
 from channel_automation.services.crawler.crawler import NewsCrawlerService
 
 app = typer.Typer(
