@@ -384,7 +384,7 @@ class TelegramBotService(ITelegramBotService):
     ) -> None:
         news_article = self.es_repo.get_news_article_by_id(article_id)
         if news_article:
-            processing_message = await query.message.reply_text(
+            await query.message.reply_text(
                 "Processing the article, this may take up to a minute..."
             )
             processed_article = self.assistant.process_and_translate_article(
@@ -394,7 +394,7 @@ class TelegramBotService(ITelegramBotService):
             processed_article.images_url = images
             self.es_repo.update_news_article(processed_article)
 
-            await processing_message.edit_text(
+            await query.message.reply_text(
                 "Processing complete! Here's the generated post:"
             )
             keyboard = self.create_original_keyboard(
