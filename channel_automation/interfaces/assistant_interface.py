@@ -7,7 +7,9 @@ from channel_automation.models import NewsArticle
 
 class IAssistant(ABC):
     @abstractmethod
-    def process_and_translate_article(self, news_article: NewsArticle) -> NewsArticle:
+    def process_and_translate_article(
+        self, news_article: NewsArticle, variation_number: int
+    ) -> NewsArticle:
         """
         Generate abstract and translate the specified fields of a NewsArticle instance, then return the modified instance.
 

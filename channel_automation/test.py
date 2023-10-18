@@ -1,61 +1,20 @@
-import re
+import json
 
-import requests
-from bs4 import BeautifulSoup
+from channel_automation.assistant.models import PostData
 
-headers = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/117.0",
-    "Accept": "*/*",
-    "Accept-Language": "en-US,en;q=0.5",
-    "Accept-Encoding": "gzip, deflate, br",
-    "X-Requested-With": "XMLHttpRequest",
-    "DNT": "1",
-    "Connection": "keep-alive",
-    "Referer": "https://www.bangkokpost.com/life/travel",
-    "Cookie": "is_pdpa=1; bkp_survey=1; is_gdpr=1",
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-origin",
-    "Pragma": "no-cache",
-    "Cache-Control": "no-cache",
-}
+json_text = """{"social_post": "🎨 Третья Биеннале Таиланда запланирована на период с 9 декабря 2023 года по 30 апреля 2024 года в Чианг Рае. Биеннале Чианг Рай 2023 подчеркнет произведения искусства 60 художников из 21 страны под темой «Открытый мир». Основные места проведения включают Международный художественный музей Чианг Рай, храм Ват Ронг Кхун, музей Баан Дам и другие замечательные места.
 
+🏛 Будет представлено более 10 павильонов от местных и международных кураторов и художников, включая Корейский павильон, павильон МоМА Варшава и другие.
 
-def extract_news_links(html_content):
-    # Initialize a BeautifulSoup object
-    soup = BeautifulSoup(html_content, "html.parser")
+🎭 В течение пяти месяцев будут проходить сопутствующие мероприятия в сотрудничестве с местными сообществами, включая музыкальные выступления многонациональных групп, показы фильмов, семинары и открытые дни более 30 художественных студий в Чианг Рае.
 
-    # Initialize an empty list to store the news links
-    specific_news_links = []
+🔗 Для получения дополнительной информации посетите веб-сайт мероприятия www.thailandbiennale.org или следите за его страницей в Facebook: Thailand Biennale.", "images_search": "Thailand Biennale Chiang Rai 2023"}"""
 
-    # Find and loop through each news item
-    for news_item in soup.find_all("div", class_="news--list boxnews-horizon"):
-        link_tag = news_item.find("figure").find("a", href=True)
+post_data = None
+try:
+    json_data = json.loads(json_text)
+    post_data = PostData(**json_data)
+except Exception as e:
+    print(e)
 
-        if link_tag is not None:
-            link = link_tag["href"]
-            specific_news_links.append(link)
-
-    return specific_news_links
-
-
-def extract_news_links_regex(html_content):
-    regex = re.compile(r'<a[^>]+href="([^"]+)"[^>]*>[^<]*<h3>')
-    links = re.findall(regex, html_content)
-
-    return links
-
-
-response = requests.get(
-    "https://www.bangkokpost.com/v3/list_content/life/travel?page=1", headers=headers
-)
-
-print(response.text)
-# Call the function and store the result
-# news_links = extract_news_links(response.text)
-news_links = extract_news_links_regex(response.text)
-
-# Display the news links
-print("List of News Links:")
-for link in news_links:
-    print(link)
+print(post_data.social_post)

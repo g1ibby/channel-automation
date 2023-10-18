@@ -1,5 +1,3 @@
-from typing import Optional
-
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, ContextTypes, MessageHandler
 
@@ -63,20 +61,55 @@ class PostHandlers(BaseHandlers):
             ]
         )
 
+    @staticmethod
+    def create_variations_keyboard(article_id: str) -> InlineKeyboardMarkup:
+        return InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        "Variation One", callback_data=f"variation_one:{article_id}"
+                    ),
+                    InlineKeyboardButton(
+                        "Variation Two", callback_data=f"variation_two:{article_id}"
+                    ),
+                ],
+                [InlineKeyboardButton("Back", callback_data=f"back:{article_id}")],
+            ]
+        )
+
     async def process_article_and_send(
-        self, context: ContextTypes.DEFAULT_TYPE, query, article_id: str
+        self,
+        context: ContextTypes.DEFAULT_TYPE,
+        query,
+        article_id: str,
+        variation_number: int,
     ) -> None:
         news_article = self.es_repo.get_news_article_by_id(article_id)
         if news_article:
             await query.message.reply_text(
                 "Processing the article, this may take up to a minute..."
             )
-            processed_article = self.assistant.process_and_translate_article(
-                news_article
-            )
-            print(processed_article.russian_abstract)
-            images = self.search.search_images(processed_article.images_search, 25)
-            processed_article.images_url = images
+            try:
+                processed_article = self.assistant.process_and_translate_article(
+                    news_article,
+                    variation_number,
+                )
+            except Exception as e:
+                print(e)
+                await query.message.reply_text(
+                    "Something went wrong with generating post text. Please try again later."
+                )
+                raise e
+
+            try:
+                images = self.search.search_images(processed_article.images_search, 25)
+                processed_article.images_url = images
+            except Exception as e:
+                print(e)
+                await query.message.reply_text(
+                    "Something went wrong with searching images. You can add image manually."
+                )
+
             self.es_repo.update_news_article(processed_article)
 
             await query.message.reply_text(
@@ -112,15 +145,27 @@ class PostHandlers(BaseHandlers):
         else:
             await query.message.reply_text("Article not found.")
 
+    async def variation_callback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE, variation_number: int
+    ) -> None:
+        query = update.callback_query
+        _, article_id = query.data.split(":", 1)
+
+        await self.process_article_and_send(
+            context, query, article_id, variation_number
+        )
+        await query.answer(
+            text=f"Generated variation {variation_number} for article ID: {article_id}"
+        )
+
     async def regenerate_callback(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
         query = update.callback_query
         _, article_id = query.data.split(":", 1)
 
-        await self.process_article_and_send(context, query, article_id)
-
-        await query.answer(text=f"Regenerating post for article ID: {article_id}")
+        new_keyboard = self.create_variations_keyboard(article_id)
+        await query.edit_message_reply_markup(reply_markup=new_keyboard)
 
     async def generate_post_callback(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -128,9 +173,8 @@ class PostHandlers(BaseHandlers):
         query = update.callback_query
         _, article_id = query.data.split(":", 1)
 
-        await self.process_article_and_send(context, query, article_id)
-
-        await query.answer(text=f"Generating post for article ID: {article_id}")
+        new_keyboard = self.create_variations_keyboard(article_id)
+        await query.edit_message_reply_markup(reply_markup=new_keyboard)
 
     async def publish_callback(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -261,6 +305,18 @@ def register(app, bot, repo, es_repo, assistant, search, admin_chat_ids):
     )
     app.add_handler(
         CallbackQueryHandler(logic.regenerate_callback, pattern="^regenerate:")
+    )
+    app.add_handler(
+        CallbackQueryHandler(
+            lambda update, context: logic.variation_callback(update, context, 1),
+            pattern="^variation_one:",
+        )
+    )
+    app.add_handler(
+        CallbackQueryHandler(
+            lambda update, context: logic.variation_callback(update, context, 2),
+            pattern="^variation_two:",
+        )
     )
     app.add_handler(CallbackQueryHandler(logic.publish_callback, pattern="^publish:"))
     app.add_handler(
