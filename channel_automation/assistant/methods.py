@@ -19,7 +19,7 @@ Additional Guidelines:
 
 - There's no need to include website links or URLs at the end of the post unless specifically instructed to do so. Excluding them helps maintain a clean and focused presentation of the content.
 
-Return the results in JSON format, using the fields `social_post` and `images_search`.
+Return the results only and solely in JSON format. The field `social_post` will contain the result of the first task, and the field `images_search` will contain the result of the second task.
 
 Example Results:
 `{"social_post": "Таиланд в настоящее время сталкивается с тем, что, по прогнозам многих экспертов, перерастет в серьезную вспышку лихорадки денге, с вероятностью до 150 000 случаев заражения к концу года.", "images_search": "dengue"}`
@@ -40,7 +40,7 @@ You are an assistant responsible for creating social media posts based on newspa
 
 2. Create an English-language Google search query to find appropriate images to accompany the social media post.
 
-Return the results in JSON format, using the fields `social_post` and `images_search`.
+Return the results only and solely in JSON format. The field `social_post` will contain the result of the first task, and the field `images_search` will contain the result of the second task.
 
 Example Results:
 `{"social_post": "*Current Situation in Thailand* Таиланд в настоящее время сталкивается с тем, что, по прогнозам многих экспертов, перерастет в серьезную вспышку лихорадки денге, с вероятностью до 150 000 случаев заражения к концу года.", "images_search": "dengue"}`
@@ -63,6 +63,7 @@ def get_completion(prompt, template):
         messages=messages,
         temperature=0.51,
         max_tokens=2261,
+        top_p=0,
         frequency_penalty=0,
         presence_penalty=0,
     )
