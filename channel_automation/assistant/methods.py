@@ -66,6 +66,7 @@ def get_completion(prompt, template):
         top_p=0,
         frequency_penalty=0,
         presence_penalty=0,
+        stop=['"}'],
     )
     if "choices" not in response or not response.choices:
         raise ValueError("No choices in response.")
