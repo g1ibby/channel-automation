@@ -1,5 +1,9 @@
+import asyncio
+import re
+
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, ContextTypes, MessageHandler
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from channel_automation.interfaces.assistant_interface import IAssistant
 from channel_automation.interfaces.es_repository_interface import IESRepository
@@ -9,6 +13,26 @@ from channel_automation.models import ChannelInfo
 
 from .base import BaseHandlers
 from .utils import PhotoReplyFilter
+
+ATTEMPTS_GENERATE = 3
+
+
+async def send_error_message(retry_state):
+    query = retry_state.args[2]
+    if retry_state.attempt_number < ATTEMPTS_GENERATE:
+        await query.message.reply_text(
+            f"Something went wrong with generating post text. I will try again. Attempt {retry_state.attempt_number}"
+        )
+    else:
+        await query.message.reply_text(
+            f"Sorry, I give up. GPT returned a wrong answer {ATTEMPTS_GENERATE} times."
+        )
+
+
+def before_sleep_callback(retry_state):
+    asyncio.run_coroutine_threadsafe(
+        send_error_message(retry_state), asyncio.get_event_loop()
+    )
 
 
 class PostHandlers(BaseHandlers):
@@ -77,6 +101,12 @@ class PostHandlers(BaseHandlers):
             ]
         )
 
+    @retry(
+        stop=stop_after_attempt(ATTEMPTS_GENERATE),  # Stop after 5 attempts
+        wait=wait_fixed(3),  # Wait 5 seconds between attempts
+        retry=retry_if_exception_type(Exception),  # Retry if there's an exception
+        before_sleep=before_sleep_callback,  # Custom message function
+    )
     async def process_article_and_send(
         self,
         context: ContextTypes.DEFAULT_TYPE,
@@ -87,7 +117,7 @@ class PostHandlers(BaseHandlers):
         news_article = self.es_repo.get_news_article_by_id(article_id)
         if news_article:
             await query.message.reply_text(
-                "Processing the article, this may take up to a minute..."
+                "Processing the article, this may take up to a few minutes..."
             )
             try:
                 processed_article = self.assistant.process_and_translate_article(
@@ -96,9 +126,6 @@ class PostHandlers(BaseHandlers):
                 )
             except Exception as e:
                 print(e)
-                await query.message.reply_text(
-                    "Something went wrong with generating post text. Please try again later."
-                )
                 raise e
 
             try:
@@ -107,7 +134,7 @@ class PostHandlers(BaseHandlers):
             except Exception as e:
                 print(e)
                 await query.message.reply_text(
-                    "Something went wrong with searching images. You can add image manually."
+                    "Something went wrong with searching images. You can add image manually later."
                 )
 
             self.es_repo.update_news_article(processed_article)
