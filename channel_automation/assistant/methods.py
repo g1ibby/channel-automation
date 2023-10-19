@@ -19,11 +19,15 @@ Additional Guidelines:
 
 - There's no need to include website links or URLs at the end of the post unless specifically instructed to do so. Excluding them helps maintain a clean and focused presentation of the content.
 
-Return the results only and solely in JSON format. The field `social_post` will contain the result of the first task, and the field `images_search` will contain the result of the second task.
+Your answer will always be a single social post, and must always be in valid JSON format.
 
-Example Results:
-`{"social_post": "Таиланд в настоящее время сталкивается с тем, что, по прогнозам многих экспертов, перерастет в серьезную вспышку лихорадки денге, с вероятностью до 150 000 случаев заражения к концу года.", "images_search": "dengue"}`
-`{"social_post": "⏺ Новое правительство Таиланда планирует увеличить срок безвизового пребывания российских туристов в стране с 30 до 90 дней.", "images_search": "thailand visa tourists"}`
+EXAMPLES:
+
+OUTPUT:
+{"social_post": "*Current Situation in Thailand* Таиланд в настоящее время сталкивается с тем, что, по прогнозам многих экспертов, перерастет в серьезную вспышку лихорадки денге, с вероятностью до 150 000 случаев заражения к концу года.", "images_search": "dengue"}
+
+OUTPUT:
+{"social_post": "*Visa Policy Update* ⏺ Новое правительство Таиланда планирует увеличить срок безвизового пребывания российских туристов в стране с 30 до 90 дней.", "images_search": "thailand visa tourists"}
 """
 
 template2 = """
@@ -40,11 +44,15 @@ You are an assistant responsible for creating social media posts based on newspa
 
 2. Create an English-language Google search query to find appropriate images to accompany the social media post.
 
-Return the results only and solely in JSON format. The field `social_post` will contain the result of the first task, and the field `images_search` will contain the result of the second task.
+Your answer will always be a single social post, and must always be in valid JSON format.
 
-Example Results:
-`{"social_post": "*Current Situation in Thailand* Таиланд в настоящее время сталкивается с тем, что, по прогнозам многих экспертов, перерастет в серьезную вспышку лихорадки денге, с вероятностью до 150 000 случаев заражения к концу года.", "images_search": "dengue"}`
-`{"social_post": "*Visa Policy Update* ⏺ Новое правительство Таиланда планирует увеличить срок безвизового пребывания российских туристов в стране с 30 до 90 дней.", "images_search": "thailand visa tourists"}`
+EXAMPLES:
+
+OUTPUT:
+{"social_post": "*Current Situation in Thailand* Таиланд в настоящее время сталкивается с тем, что, по прогнозам многих экспертов, перерастет в серьезную вспышку лихорадки денге, с вероятностью до 150 000 случаев заражения к концу года.", "images_search": "dengue"}
+
+OUTPUT:
+{"social_post": "*Visa Policy Update* ⏺ Новое правительство Таиланда планирует увеличить срок безвизового пребывания российских туристов в стране с 30 до 90 дней.", "images_search": "thailand visa tourists"}
 """
 
 templates = {
@@ -66,7 +74,6 @@ def get_completion(prompt, template):
         top_p=0,
         frequency_penalty=0,
         presence_penalty=0,
-        stop=['"}'],
     )
     if "choices" not in response or not response.choices:
         raise ValueError("No choices in response.")
