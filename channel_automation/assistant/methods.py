@@ -4,7 +4,7 @@ import openai
 
 from channel_automation.assistant.models import PostData
 from channel_automation.interfaces.assistant_interface import IAssistant
-from channel_automation.models import NewsArticle
+from channel_automation.models import NewsArticle, Post
 
 template1 = """
 You are an assistant responsible for creating social media posts based on newspaper articles. Here are your two tasks:
@@ -25,7 +25,6 @@ EXAMPLES:
 
 OUTPUT:
 {"social_post": "*Current Situation in Thailand* Таиланд в настоящее время сталкивается с тем, что, по прогнозам многих экспертов, перерастет в серьезную вспышку лихорадки денге, с вероятностью до 150 000 случаев заражения к концу года.", "images_search": "dengue"}
-
 OUTPUT:
 {"social_post": "*Visa Policy Update* ⏺ Новое правительство Таиланда планирует увеличить срок безвизового пребывания российских туристов в стране с 30 до 90 дней.", "images_search": "thailand visa tourists"}
 """
@@ -50,7 +49,6 @@ EXAMPLES:
 
 OUTPUT:
 {"social_post": "*Current Situation in Thailand* Таиланд в настоящее время сталкивается с тем, что, по прогнозам многих экспертов, перерастет в серьезную вспышку лихорадки денге, с вероятностью до 150 000 случаев заражения к концу года.", "images_search": "dengue"}
-
 OUTPUT:
 {"social_post": "*Visa Policy Update* ⏺ Новое правительство Таиланда планирует увеличить срок безвизового пребывания российских туристов в стране с 30 до 90 дней.", "images_search": "thailand visa tourists"}
 """
@@ -101,17 +99,16 @@ class Assistant(IAssistant):
         openai.api_key = api_token
         pass
 
-    def process_and_translate_article(
-        self, news_article: NewsArticle, variation_number: int
-    ) -> NewsArticle:
+    def generate_post(self, news_article: NewsArticle, variation_number: int) -> Post:
         try:
             chosen_template = templates.get(variation_number, template1)
             result_json = get_completion(news_article.text, chosen_template)
             post_data = parse_json_to_dataclass(result_json)
 
-            news_article.russian_abstract = post_data.social_post
-            news_article.images_search = post_data.images_search
-            return news_article
+            return Post(
+                social_post=post_data.social_post, images_search=post_data.images_search
+            )
         except Exception as e:
+            print(e)
             # Optional: log the exception
             raise  # This will propagate the exception up a level

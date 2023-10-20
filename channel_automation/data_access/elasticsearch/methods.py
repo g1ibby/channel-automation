@@ -1,11 +1,12 @@
 from typing import Any, Optional
 
+import copy
 import time
 
 from elasticsearch import Elasticsearch
 
 from channel_automation.interfaces.es_repository_interface import IESRepository
-from channel_automation.models import NewsArticle
+from channel_automation.models import NewsArticle, Post
 
 
 class ESRepository(IESRepository):
@@ -94,8 +95,22 @@ class ESRepository(IESRepository):
 
     def update_news_article(self, news_article: NewsArticle) -> NewsArticle:
         doc_id = news_article.id
-        document = news_article.__dict__
-        self.update_document(doc_id, document)
+        document = copy.deepcopy(news_article.__dict__)
+        try:
+            # Convert Post objects to dictionaries
+            document["posts"] = [
+                post.__dict__ if isinstance(post, Post) else post
+                for post in document["posts"]
+            ]
+        except Exception as e:
+            print(f"Error converting posts to dictionaries: {e}")
+            raise e
+
+        try:
+            self.update_document(doc_id, document)
+        except Exception as e:
+            print(f"Error updating document: {e}")
+            raise e
         return news_article
 
     def update_document(
@@ -116,6 +131,12 @@ class ESRepository(IESRepository):
             if response["found"]:
                 article_data = response["_source"]
                 article_data["id"] = response["_id"]
+                # Convert list of dictionaries to list of Post objects
+                if "posts" in article_data:
+                    article_data["posts"] = [
+                        Post(**post_data) for post_data in article_data["posts"]
+                    ]
+
                 return NewsArticle(**article_data)
         except Exception as e:
             print(f"Error retrieving document by ID: {e}")

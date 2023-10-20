@@ -87,7 +87,6 @@ class SourceHandlers(BaseHandlers):
     async def get_latest_news(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
-        print("Getting latest news...")
         latest_articles = self.es_repo.get_latest_news(10)
         if not latest_articles:
             await update.message.reply_text("No articles found.")
