@@ -18,3 +18,16 @@ class IAssistant(ABC):
             Post: The generated social post.
         """
         pass
+
+    @abstractmethod
+    def make_post_fancy(self, post: Post) -> Post:
+        """
+        Make the specified post fancy.
+
+        Args:
+            post (Post): The post to be made fancy.
+
+        Returns:
+            Post: The fancy post.
+        """
+        pass

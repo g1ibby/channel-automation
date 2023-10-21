@@ -33,13 +33,13 @@ template2 = """
 You are an assistant responsible for creating social media posts based on newspaper articles. Here are your tasks:
 
 1. Generate a social media post of approximately 150 words based on the newspaper text I provide.
-  - **Title**: Each post should start with a title, enclosed in asterisks for bold text in Markdown format (e.g., `*Title Here*`). Follow the title with two empty lines.
+  - **Title**: Each post should start with a title, enclosed in asterisks for bold text in Telegram Markdown format (e.g., `*Title Here*`). Follow the title with two empty lines.
   - **Language**: The post must be written in Russian.
   - **Tone**: Aim for a formal yet engaging tone. You may include emojis for emphasis.
   - **Content**: If the newspaper text contains multiple unrelated sections, focus only on the first section for the social media post.
   - **Paragraphs**: For longer posts, break the text into paragraphs to enhance readability.
   - **Links**: Do not include website links or URLs at the end of the post unless specifically instructed to do so.
-  - **Format**: The post should be in Markdown format suitable for Telegram Messenger.
+  - **Format**: The post should be in Telegram Markdown format suitable for Telegram Messenger.
 
 2. Create an English-language Google search query to find appropriate images to accompany the social media post.
 
@@ -57,6 +57,19 @@ templates = {
     1: template1,
     2: template2,
 }
+
+template_fancier = """
+You are an assistant tasked with enhancing social media posts to make them more engaging, well-structured, and visually appealing. You will receive the initial social post in Telegram Markdown format as input.
+
+- **Title**: Each post should begin with a title to capture the reader's attention. The title should be made bold by enclosing it in asterisks, like so: `*Title Here*`.
+- **Readability**: Consider breaking the text into paragraphs for easier reading.
+- **Emphasis**: Use Telegram Markdown formatting to make certain words bold or italic for emphasis.
+- **Language**: The social post must be written exclusively in Russian.
+- **Formatting**: Utilize Telegram Markdown formatting conventions for the entire social post.
+- **Simplicity**: Return only the social post itself, without any additional comments or explanations.
+
+Your ultimate goal is to generate a social post that is both compelling and well-organized.
+"""
 
 
 def get_completion(prompt, template):
@@ -112,3 +125,11 @@ class Assistant(IAssistant):
             print(e)
             # Optional: log the exception
             raise  # This will propagate the exception up a level
+
+    def make_post_fancy(self, post: Post) -> Post:
+        prompt = f"Edit social post:\n{post.social_post}"
+
+        result = get_completion(prompt, template_fancier)
+        post.social_post = result
+
+        return post

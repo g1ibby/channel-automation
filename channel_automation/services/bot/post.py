@@ -70,6 +70,11 @@ def create_original_keyboard(
             ],
             [
                 InlineKeyboardButton(
+                    "Make fancy", callback_data=f"make_fancy:{article_id}:{post_index}"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
                     "Publish", callback_data=f"publish:{article_id}:{post_index}"
                 )
             ],
@@ -184,49 +189,86 @@ class PostHandlers(BaseHandlers):
         variation_number: int,
     ) -> None:
         news_article = self.es_repo.get_news_article_by_id(article_id)
-        if news_article:
-            await query.message.reply_text(
-                "Processing the article, this may take up to a few minutes..."
-            )
-            try:
-                post = self.assistant.generate_post(
-                    news_article,
-                    variation_number,
-                )
-                if post:
-                    news_article.posts.append(post)
-                    post_index = len(news_article.posts) - 1
-            except Exception as e:
-                print(e)
-                raise e
-
-            try:
-                images = self.search.search_images(post.images_search, 25)
-                if images:
-                    first_image_url = images[0]
-                    news_article.posts[post_index].images_url.append(first_image_url)
-            except Exception as e:
-                print(e)
-                await query.message.reply_text(
-                    "Something went wrong with searching images. You can add image manually later."
-                )
-
-            self.es_repo.update_news_article(news_article)
-            chat_id = query.message.chat_id
-            image_id = await self.send_post(context, chat_id, article_id, post_index)
-            try:
-                if image_id:
-                    news_article.posts[post_index].images_id = [
-                        image_id
-                    ]  # rewrite images_id with the new image_id
-                    self.es_repo.update_news_article(news_article)
-            except Exception as e:
-                print(e)
-                await query.message.reply_text(
-                    "Something went wrong with saving the image. You can add image manually later."
-                )
-        else:
+        if not news_article:
             await query.message.reply_text("Article not found.")
+            return
+
+        await query.message.reply_text(
+            "Processing the article, this may take up to a few minutes..."
+        )
+        try:
+            post = self.assistant.generate_post(
+                news_article,
+                variation_number,
+            )
+            if post:
+                news_article.posts.append(post)
+                post_index = len(news_article.posts) - 1
+        except Exception as e:
+            print(e)
+            raise e
+
+        print(f"Generated post: {post.social_post}")
+
+        try:
+            images = self.search.search_images(post.images_search, 25)
+            if images:
+                first_image_url = images[0]
+                news_article.posts[post_index].images_url.append(first_image_url)
+        except Exception as e:
+            print(e)
+            await query.message.reply_text(
+                "Something went wrong with searching images. You can add image manually later."
+            )
+
+        self.es_repo.update_news_article(news_article)
+        chat_id = query.message.chat_id
+        image_id = await self.send_post(context, chat_id, article_id, post_index)
+        try:
+            if image_id:
+                news_article.posts[post_index].images_id = [
+                    image_id
+                ]  # rewrite images_id with the new image_id
+                self.es_repo.update_news_article(news_article)
+        except Exception as e:
+            print(e)
+            await query.message.reply_text(
+                "Something went wrong with saving the image. You can add image manually later."
+            )
+
+    @retry(
+        stop=stop_after_attempt(ATTEMPTS_GENERATE),  # Stop after 5 attempts
+        wait=wait_fixed(3),  # Wait 5 seconds between attempts
+        retry=retry_if_exception_type(Exception),  # Retry if there's an exception
+        before_sleep=before_sleep_callback,  # Custom message function
+    )
+    async def fancy_post(self, context, query, article_id: str, post_index: int):
+        news_article = self.es_repo.get_news_article_by_id(article_id)
+        if not news_article:
+            await query.message.reply_text("Article not found.")
+            return
+
+        await query.message.reply_text(
+            "Making the post *fancy*...", parse_mode="Markdown"
+        )
+        post = news_article.posts[post_index]
+        fancy_post = self.assistant.make_post_fancy(post)
+        print(f"Fancy post: {fancy_post}")
+        if fancy_post:
+            news_article.posts.append(fancy_post)
+            post_index = len(news_article.posts) - 1
+            self.es_repo.update_news_article(news_article)
+            await self.send_post(context, query.message.chat_id, article_id, post_index)
+
+    async def make_post_fancy_callback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        query = update.callback_query
+        _, article_id, post_index = query.data.split(":", 2)
+        post_index = int(post_index)
+        print(f"Making post fancy: {post_index} for article: {article_id}")
+
+        await self.fancy_post(context, query, article_id, post_index)
 
     async def chosen_variation_callback(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE, variation_number: int
@@ -384,6 +426,9 @@ def register(app, bot, repo, es_repo, assistant, search, admin_chat_ids):
             lambda update, context: logic.chosen_variation_callback(update, context, 2),
             pattern="^variation_two:",
         )
+    )
+    app.add_handler(
+        CallbackQueryHandler(logic.make_post_fancy_callback, pattern="^make_fancy:")
     )
     app.add_handler(
         CallbackQueryHandler(logic.publish_menu_callback, pattern="^publish:")
