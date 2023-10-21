@@ -71,6 +71,20 @@ You are an assistant tasked with enhancing social media posts to make them more 
 Your ultimate goal is to generate a social post that is both compelling and well-organized.
 """
 
+template_guidence = """
+You are an assistant tasked with transforming social media posts according to user-provided guidelines. You will receive the initial social post and specific stylistic guidance from the user, both in Telegram Markdown format as input.
+
+- **Title**: Each post should start with a title that aligns with the user's stylistic guidance. Make the title bold by enclosing it in asterisks, like so: `*Title Here*`.
+- **Readability**: Break the text into paragraphs if suggested by the user for easier reading.
+- **Emphasis**: Use Telegram Markdown formatting to make certain words bold or italic, based on the user's preferences.
+- **Language**: The social post must be written exclusively in Russian.
+- **Formatting**: Stick to Telegram Markdown formatting conventions for the entire social post.
+- **User Guidance**: Follow the stylistic and content-related guidelines provided by the user.
+- **Simplicity**: Return only the re-crafted social post, devoid of any additional comments or explanations.
+
+Your ultimate goal is to generate a social post that adheres to the user's guidelines while being compelling and well-organized.
+"""
+
 
 def get_completion(prompt, template):
     messages = [
@@ -130,6 +144,14 @@ class Assistant(IAssistant):
         prompt = f"Edit social post:\n{post.social_post}"
 
         result = get_completion(prompt, template_fancier)
+        post.social_post = result
+
+        return post
+
+    def post_guidence(self, post: Post, guidence: str) -> Post:
+        prompt = f"Guidence:\n{guidence}\n\nSocial post:\n{post.social_post}"
+
+        result = get_completion(prompt, template_guidence)
         post.social_post = result
 
         return post

@@ -4,7 +4,7 @@ import asyncio
 
 from requests import post
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import CallbackQueryHandler, ContextTypes, MessageHandler
+from telegram.ext import CallbackQueryHandler, ContextTypes, MessageHandler, filters
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from channel_automation.interfaces.assistant_interface import IAssistant
@@ -14,7 +14,6 @@ from channel_automation.interfaces.search_interface import IImageSearch
 from channel_automation.models import ChannelInfo
 
 from .base import BaseHandlers
-from .utils import PhotoReplyFilter
 
 ATTEMPTS_GENERATE = 3
 
@@ -260,6 +259,32 @@ class PostHandlers(BaseHandlers):
             self.es_repo.update_news_article(news_article)
             await self.send_post(context, query.message.chat_id, article_id, post_index)
 
+    @retry(
+        stop=stop_after_attempt(ATTEMPTS_GENERATE),  # Stop after 5 attempts
+        wait=wait_fixed(3),  # Wait 5 seconds between attempts
+        retry=retry_if_exception_type(Exception),  # Retry if there's an exception
+        before_sleep=before_sleep_callback,  # Custom message function
+    )
+    async def guidence_post(
+        self, context, message, article_id: str, post_index: int, guidence: str
+    ):
+        news_article = self.es_repo.get_news_article_by_id(article_id)
+        if not news_article:
+            await message.reply_text("Article not found.")
+            return
+
+        await message.reply_text(
+            "Applying your guidence to this post", parse_mode="Markdown"
+        )
+        post = news_article.posts[post_index]
+        guided_post = self.assistant.post_guidence(post, guidence)
+        print(f"Guided post: {guided_post}")
+        if guided_post:
+            news_article.posts.append(guided_post)
+            post_index = len(news_article.posts) - 1
+            self.es_repo.update_news_article(news_article)
+            await self.send_post(context, message.chat.id, article_id, post_index)
+
     async def make_post_fancy_callback(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
@@ -319,41 +344,49 @@ class PostHandlers(BaseHandlers):
         post_index = int(post_index)
         print(f"Publishing post {post_index} for article {article_id}")
 
-        article = self.es_repo.get_news_article_by_id(article_id)
-        post = article.posts[post_index]
+        try:
+            article = self.es_repo.get_news_article_by_id(article_id)
+            post = article.posts[post_index]
 
-        # Retrieve the ChannelInfo by channel_id
-        channel_info: Optional[ChannelInfo] = self.repo.get_channel_by_id(channel_id)
-
-        # Retrieve the image URL and caption from the message
-        caption = post.social_post
-        # Add bottom_text from ChannelInfo to the caption if it exists
-        if channel_info and channel_info.bottom_text:
-            caption = f"{caption}\n\n{channel_info.bottom_text}"
-
-        # Publish the article in the specified channel
-        if post.images_id:
-            await self.bot.send_photo(
-                chat_id=channel_id,
-                photo=post.images_id[0],
-                caption=caption,
-                parse_mode="Markdown",
-            )
-        else:
-            await self.bot.send_message(
-                chat_id=channel_id,
-                text=caption,
-                parse_mode="Markdown",
+            # Retrieve the ChannelInfo by channel_id
+            channel_info: Optional[ChannelInfo] = self.repo.get_channel_by_id(
+                channel_id
             )
 
-        # Update the inline keyboard markup using the new create_original_keyboard function
-        keyboard = create_original_keyboard(article_id, post_index, post.images_search)
+            # Retrieve the image URL and caption from the message
+            caption = post.social_post
+            # Add bottom_text from ChannelInfo to the caption if it exists
+            if channel_info and channel_info.bottom_text:
+                caption = f"{caption}\n\n{channel_info.bottom_text}"
 
-        # Update the inline keyboard markup of the message
-        await query.edit_message_reply_markup(reply_markup=keyboard)
-        await query.answer(
-            text=f"Published post for article ID: {article_id} in channel: {channel_info.title}"
-        )
+            # Publish the article in the specified channel
+            if post.images_id:
+                await self.bot.send_photo(
+                    chat_id=channel_id,
+                    photo=post.images_id[0],
+                    caption=caption,
+                    parse_mode="Markdown",
+                )
+            else:
+                await self.bot.send_message(
+                    chat_id=channel_id,
+                    text=caption,
+                    parse_mode="Markdown",
+                )
+
+            # Update the inline keyboard markup using the new create_original_keyboard function
+            keyboard = create_original_keyboard(
+                article_id, post_index, post.images_search
+            )
+
+            # Update the inline keyboard markup of the message
+            await query.edit_message_reply_markup(reply_markup=keyboard)
+            await query.answer(
+                text=f"Published post for article ID: {article_id} in channel: {channel_info.title}"
+            )
+        except Exception as e:
+            print(e)
+            await query.answer(text="Something went wrong.")
 
     async def back_callback(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -406,6 +439,40 @@ class PostHandlers(BaseHandlers):
             print(e)
             await message.reply_text("Something went wrongggg. Regenerate the post.")
 
+    async def handle_text_reply(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        # Get the reply message and the original message it was in reply to
+        message = update.message
+        try:
+            if message.reply_to_message.from_user.id == context.bot.id:
+                # Get the photo file
+                text = message.text
+                message_id = message.reply_to_message.message_id
+                print(f"Messsage ID: {message_id} text: {text}")
+
+                try:
+                    # Retrieve stored article_id and images_search
+                    data = context.chat_data.get(message_id)
+                    if data:
+                        article_id = data.get("article_id")
+                        post_index = data.get("post_index")
+                        await self.guidence_post(
+                            context, message, article_id, post_index, text
+                        )
+                    else:
+                        await message.reply_text(
+                            "Something went wrong. Regenerate the post."
+                        )
+                except Exception as e:
+                    print(e)
+                    await message.reply_text(
+                        "Something went wrongggg. Regenerate the post."
+                    )
+        except Exception as e:
+            print(e)
+            await message.reply_text("Something went wrongggg. Regenerate the post.")
+
 
 def register(app, bot, repo, es_repo, assistant, search, admin_chat_ids):
     logic = PostHandlers(bot, repo, es_repo, assistant, search, admin_chat_ids)
@@ -439,4 +506,9 @@ def register(app, bot, repo, es_repo, assistant, search, admin_chat_ids):
         )
     )
     app.add_handler(CallbackQueryHandler(logic.back_callback, pattern="^back:"))
-    app.add_handler(MessageHandler(PhotoReplyFilter(), logic.handle_post_photo_reply))
+    app.add_handler(
+        MessageHandler(filters.PHOTO & filters.REPLY, logic.handle_post_photo_reply)
+    )
+    app.add_handler(
+        MessageHandler(filters.TEXT & filters.REPLY, logic.handle_text_reply)
+    )

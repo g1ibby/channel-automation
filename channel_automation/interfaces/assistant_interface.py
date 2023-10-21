@@ -31,3 +31,16 @@ class IAssistant(ABC):
             Post: The fancy post.
         """
         pass
+
+    @abstractmethod
+    def post_guidence(self, post: Post, guidence: str) -> Post:
+        """
+        Add guidence to the specified post.
+
+        Args:
+            post (Post): The post to be added guidence.
+            guidence (str): The guidence to be added.
+
+        Returns:
+            Post: The post with guidence.
+        """

@@ -1,26 +1,16 @@
-from telegram import (
-    Bot,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    ReplyKeyboardMarkup,
-    Update,
-)
-from telegram.ext import (
-    ApplicationBuilder,
-    CallbackQueryHandler,
-    ChatMemberHandler,
-    CommandHandler,
-    ContextTypes,
-    ConversationHandler,
-    MessageHandler,
-    filters,
-)
+from telegram import Update
+from telegram.ext import ContextTypes
 from telegram.ext.filters import BaseFilter
 
 
 class PhotoReplyFilter(BaseFilter):
     def filter(self, message):
-        return message.photo is not None and message.reply_to_message is not None
+        print(message)
+        return (
+            message.photo is not None
+            and message.reply_to_message is not None
+            and message.text is None
+        )
 
 
 def admin_required(func):

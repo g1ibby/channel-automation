@@ -44,6 +44,21 @@ class AdminHandlers(BaseHandlers):
         context.user_data["is_admin"] = is_admin
         return is_admin
 
+    async def send_welcome_message(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        keyboard = create_start_menu()
+        welcome_text = r"""*Welcome to the bot!*
+
+    Here are some features you can use:
+    1. **Reply with Photo**: If you reply to a social post with a photo, the photo will be attached to the post.
+    2. **Reply with Text Guidance**: If you reply to a social post with text, your guidance will be applied to the post. For example, you can reply with commands like \`make it funnier\` or \`make it shorter\`.
+
+    Feel free to explore!"""
+        await update.message.reply_text(
+            welcome_text, reply_markup=keyboard, parse_mode="Markdown"
+        )
+
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         user_id = str(update.effective_user.id)
         if user_id not in self.admin_chat_ids:
@@ -52,8 +67,7 @@ class AdminHandlers(BaseHandlers):
             )
             return AWAITING_SECRET_KEY
 
-        keyboard = create_start_menu()
-        await update.message.reply_text("Welcome to the bot!", reply_markup=keyboard)
+        await self.send_welcome_message(update, context)
         return ConversationHandler.END
 
     async def handle_secret_key(
@@ -69,10 +83,7 @@ class AdminHandlers(BaseHandlers):
             # Update the local list of admin chat ids
             self.admin_chat_ids.append(user_id)
             await update.message.reply_text("You are now an admin!")
-            keyboard = create_start_menu()
-            await update.message.reply_text(
-                "Welcome to the bot!", reply_markup=keyboard
-            )
+            await self.send_welcome_message(update, context)
             return ConversationHandler.END
         else:
             await update.message.reply_text("Incorrect key!")
