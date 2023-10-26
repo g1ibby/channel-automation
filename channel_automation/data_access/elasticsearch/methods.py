@@ -63,6 +63,8 @@ class ESRepository(IESRepository):
             document = news_article.__dict__
             doc_id = self.index_document(document)
             news_article.id = doc_id
+            if news_article.posts is None:
+                news_article.posts = []
             return news_article
 
     def index_document(self, document: dict[str, Any]) -> Optional[str]:
@@ -132,10 +134,12 @@ class ESRepository(IESRepository):
                 article_data = response["_source"]
                 article_data["id"] = response["_id"]
                 # Convert list of dictionaries to list of Post objects
-                if "posts" in article_data:
+                if "posts" in article_data and isinstance(article_data["posts"], list):
                     article_data["posts"] = [
                         Post(**post_data) for post_data in article_data["posts"]
                     ]
+                else:
+                    article_data["posts"] = []
 
                 return NewsArticle(**article_data)
         except Exception as e:

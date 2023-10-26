@@ -187,6 +187,7 @@ class PostHandlers(BaseHandlers):
         article_id: str,
         variation_number: int,
     ) -> None:
+        print(article_id)
         news_article = self.es_repo.get_news_article_by_id(article_id)
         if not news_article:
             await query.message.reply_text("Article not found.")
