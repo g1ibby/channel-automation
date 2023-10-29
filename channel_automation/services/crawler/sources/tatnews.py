@@ -98,6 +98,7 @@ class TatnewsCrawler:
                     if extracted_data is not None:
                         data = json.loads(extracted_data)
                         article = await news_article_from_json(data)
+                        article.images_url = []
                         return article
                 except Exception as e:
                     print(f"Error extracting content: {e}")

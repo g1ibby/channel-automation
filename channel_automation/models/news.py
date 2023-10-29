@@ -30,7 +30,7 @@ class NewsArticle:
     source_hostname: str = field(metadata={"json_key": "source-hostname"})
     excerpt: str
     posts: list[Post] = field(default_factory=list)
+    images_url: list[str] = field(default_factory=list)
     # we don't need this field. Keep it here because we have these fields in database
     russian_abstract: Optional[str] = field(default=None)
     images_search: Optional[str] = field(default=None)
-    images_url: list[str] = field(default_factory=list)

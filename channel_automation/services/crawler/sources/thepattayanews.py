@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import json
 import re
@@ -15,6 +15,14 @@ from ..utils import news_article_from_json
 # Define headers and timeout as constants
 timeout = aiohttp.ClientTimeout(total=15)
 headers = {}
+
+
+def extract_main_image(html_content: bytes) -> str:
+    soup = BeautifulSoup(html_content, "html.parser")
+    img_tag = soup.select_one("div.td-post-featured-image img")
+    if img_tag and "src" in img_tag.attrs:
+        return img_tag["src"]
+    return None
 
 
 @retry(
@@ -86,6 +94,9 @@ class ThepattayaNewsCrawler:
             downloaded = await fetch_article(session, url, headers)
             if downloaded is not None:
                 try:
+                    # Extracting main image URL
+                    main_image_url = extract_main_image(downloaded)
+
                     extracted_data = trafilatura.extract(
                         downloaded,
                         include_comments=False,
@@ -97,6 +108,15 @@ class ThepattayaNewsCrawler:
                     if extracted_data is not None:
                         data = json.loads(extracted_data)
                         article = await news_article_from_json(data)
+
+                        # Initialize images_url if it is None
+                        if article.images_url is None:
+                            article.images_url = []
+
+                        # Adding main image URL to NewsArticle
+                        if main_image_url:
+                            article.images_url.append(main_image_url)
+
                         return article
                 except Exception as e:
                     print(f"Error extracting content: {e}")

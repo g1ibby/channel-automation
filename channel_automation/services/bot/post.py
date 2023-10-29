@@ -2,7 +2,6 @@ from typing import Optional
 
 import asyncio
 
-from requests import post
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, ContextTypes, MessageHandler, filters
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
@@ -211,7 +210,11 @@ class PostHandlers(BaseHandlers):
         print(f"Generated post: {post.social_post}")
 
         try:
-            images = self.search.search_images(post.images_search, 25)
+            images = []
+            if len(news_article.images_url) != 0:
+                images = news_article.images_url
+            else:
+                images = self.search.search_images(post.images_search, 25)
             if images:
                 first_image_url = images[0]
                 news_article.posts[post_index].images_url.append(first_image_url)
