@@ -1,23 +1,17 @@
-from typing import Any, List, Optional
+from typing import Optional
 
 import json
 import time
-from dataclasses import fields
 
 import aiohttp
 import trafilatura
+from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from channel_automation.models import NewsArticle
 
+from ..utils import news_article_from_json
 
-async def news_article_from_json(json_data: dict[str, Any]) -> NewsArticle:
-    init_args = {
-        field.name: json_data.get(field.metadata.get("json_key", field.name))
-        for field in fields(NewsArticle)
-    }
-    return NewsArticle(**init_args)
-
-
+timeout = aiohttp.ClientTimeout(total=15)
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/118.0",
     "Accept": "application/json, text/plain, */*",
@@ -36,17 +30,25 @@ headers = {
 }
 
 
+@retry(
+    stop=stop_after_attempt(5),
+    wait=wait_random_exponential(multiplier=1, min=3, max=30),
+)
+async def fetch_json_from_api_with_retry(session, url: str, headers) -> dict:
+    async with session.get(url, headers=headers) as response:
+        if response.status == 200:
+            return await response.json()
+        else:
+            print(f"Error: {response.status}")
+            return {}
+
+
 class TourismthailandCrawler:
     async def fetch_json_from_api(self, url: str) -> dict:
         timestamp = str(int(time.time() * 1000))
         full_url = f"{url}&timestamp={timestamp}"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(full_url, headers=headers) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    print(f"Error: {response.status}")
-                    return {}
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            return await fetch_json_from_api_with_retry(session, full_url, headers)
 
     async def get_tourismthailand_breaking_news_links(self) -> list[str]:
         url = "https://api.tourismthailand.org/api/home/get_breaking_news?Language=en"
@@ -75,8 +77,12 @@ class TourismthailandCrawler:
 
         return extracted_articles
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_random_exponential(multiplier=1, min=3, max=30),
+    )
     async def extract_content(self, url: str) -> Optional[NewsArticle]:
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(url) as response:
                 if response.status == 200:
                     downloaded = await response.read()

@@ -1,7 +1,6 @@
-from typing import Any, List, Optional
+from typing import Optional
 
 import json
-from dataclasses import fields
 
 import aiohttp
 import trafilatura
@@ -10,15 +9,9 @@ from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from channel_automation.models import NewsArticle
 
+from ..utils import news_article_from_json
+
 timeout = aiohttp.ClientTimeout(total=15)
-
-
-async def news_article_from_json(json_data: dict[str, Any]) -> NewsArticle:
-    init_args = {
-        field.name: json_data.get(field.metadata.get("json_key", field.name))
-        for field in fields(NewsArticle)
-    }
-    return NewsArticle(**init_args)
 
 
 @retry(
