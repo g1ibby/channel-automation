@@ -70,6 +70,8 @@ class TourismthailandCrawler:
         data1 = await self.get_tourismthailand_breaking_news_links()
         data2 = await self.get_tourismthailand_announcement_links()
 
+        print(f"Found {len(data1)} breaking news articles")
+        print(f"Found {len(data2)} announcement articles")
         for result in data1 + data2:
             article = await self.extract_content(result)
             if article:
@@ -82,6 +84,7 @@ class TourismthailandCrawler:
         wait=wait_random_exponential(multiplier=1, min=3, max=30),
     )
     async def extract_content(self, url: str) -> Optional[NewsArticle]:
+        print(f"Extracting content from {url}")
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(url) as response:
                 if response.status == 200:
