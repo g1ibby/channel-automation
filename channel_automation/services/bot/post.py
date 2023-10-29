@@ -211,7 +211,10 @@ class PostHandlers(BaseHandlers):
 
         try:
             images = []
-            if len(news_article.images_url) != 0:
+            if (
+                news_article.images_url is not None
+                and len(news_article.images_url) != 0
+            ):
                 images = news_article.images_url
             else:
                 images = self.search.search_images(post.images_search, 25)
