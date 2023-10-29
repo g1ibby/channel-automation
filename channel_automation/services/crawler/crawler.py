@@ -9,6 +9,9 @@ from channel_automation.data_access.postgresql.methods import Repository
 from channel_automation.interfaces.bot_service_interface import ITelegramBotService
 from channel_automation.services.crawler.sources.bangkokpost import BangkokpostCrawler
 from channel_automation.services.crawler.sources.tatnews import TatnewsCrawler
+from channel_automation.services.crawler.sources.thepattayanews import (
+    ThepattayaNewsCrawler,
+)
 from channel_automation.services.crawler.sources.tourismthailand import (
     TourismthailandCrawler,
 )
@@ -67,6 +70,8 @@ class NewsCrawlerService:
             crawler = TatnewsCrawler()
         elif "tourismthailand.org" in main_page:
             crawler = TourismthailandCrawler()
+        elif "thepattayanews.com" in main_page:
+            crawler = ThepattayaNewsCrawler()
         else:
             print(f"Unknown source: {main_page}")
             return None
