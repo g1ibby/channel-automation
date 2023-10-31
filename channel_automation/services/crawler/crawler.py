@@ -12,6 +12,7 @@ from channel_automation.services.crawler.sources.tatnews import TatnewsCrawler
 from channel_automation.services.crawler.sources.thepattayanews import (
     ThepattayaNewsCrawler,
 )
+from channel_automation.services.crawler.sources.thethaiger import ThethaigerNewsCrawler
 from channel_automation.services.crawler.sources.tourismthailand import (
     TourismthailandCrawler,
 )
@@ -72,6 +73,8 @@ class NewsCrawlerService:
             crawler = TourismthailandCrawler()
         elif "thepattayanews.com" in main_page:
             crawler = ThepattayaNewsCrawler()
+        elif "thethaiger.com" in main_page:
+            crawler = ThethaigerNewsCrawler()
         else:
             print(f"Unknown source: {main_page}")
             return None
