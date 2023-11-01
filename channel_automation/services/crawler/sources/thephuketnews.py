@@ -98,7 +98,7 @@ class PhuketNewsCrawler:
         links = []
         for item in soup.select(".row.p-2.border-bottom"):
             link = item.select_one("h5 a")["href"]
-            full_link = f"https://www.thephuketnews.com{link}"
+            full_link = f"https://www.thephuketnews.com/{link}"
             links.append(full_link)
         return links
 
