@@ -1,6 +1,7 @@
 from typing import Optional
 
 import asyncio
+from urllib.parse import quote
 
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, ContextTypes, MessageHandler, filters
@@ -52,32 +53,42 @@ def create_channel_keyboard(
 
 
 def create_original_keyboard(
-    article_id: str, post_index: int, search_terms: Optional[str]
+    article_id: str, post_index: int, search_terms: Optional[str] = None
 ) -> InlineKeyboardMarkup:
-    google_search_url = f"https://www.google.com/search?tbm=isch&q={search_terms}"
-    return InlineKeyboardMarkup(
+    buttons = [
         [
-            [
-                InlineKeyboardButton(
-                    "Regenerate", callback_data=f"regenerate:{article_id}:{post_index}"
-                ),
-                InlineKeyboardButton(
-                    "Search image",
-                    url=google_search_url,
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    "Make fancy", callback_data=f"make_fancy:{article_id}:{post_index}"
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    "Publish", callback_data=f"publish:{article_id}:{post_index}"
-                )
-            ],
-        ]
-    )
+            InlineKeyboardButton(
+                "Regenerate", callback_data=f"regenerate:{article_id}:{post_index}"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "Make fancy", callback_data=f"make_fancy:{article_id}:{post_index}"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "Publish", callback_data=f"publish:{article_id}:{post_index}"
+            )
+        ],
+    ]
+
+    if search_terms:
+        # Encode search_terms to handle special characters
+        encoded_search_terms = quote(search_terms)
+        google_search_url = (
+            f"https://www.google.com/search?tbm=isch&q={encoded_search_terms}"
+        )
+
+        # Add the Search image button to the first row of buttons
+        buttons[0].append(
+            InlineKeyboardButton(
+                "Search image",
+                url=google_search_url,
+            )
+        )
+
+    return InlineKeyboardMarkup(buttons)
 
 
 def create_variations_keyboard(
@@ -133,41 +144,49 @@ class PostHandlers(BaseHandlers):
                     text=f"Here's the generated post for article: *{news_article.title}*",
                     parse_mode="Markdown",
                 )
-                keyboard = create_original_keyboard(
-                    article_id, post_index, post.images_search
-                )
-                if post.images_id:
-                    # Use the first image_id from images_id list
-                    image_to_use = post.images_id[0]
-                elif post.images_url:
-                    # Use the first image_url from images_url list
-                    image_to_use = post.images_url[0]
-                else:
-                    image_to_use = None
+                print(f"Post: {post}")
+                try:
+                    keyboard = create_original_keyboard(
+                        article_id, post_index, post.images_search
+                    )
+                    if post.images_id:
+                        # Use the first image_id from images_id list
+                        image_to_use = post.images_id[0]
+                    elif post.images_url:
+                        # Use the first image_url from images_url list
+                        image_to_use = post.images_url[0]
+                    else:
+                        image_to_use = None
 
-                image_id = None
-                if image_to_use:
-                    sent_message = await self.bot.send_photo(
+                    image_id = None
+                    if image_to_use:
+                        sent_message = await self.bot.send_photo(
+                            chat_id=chat_id,
+                            photo=image_to_use,
+                            caption=f"{post.social_post}",
+                            parse_mode="Markdown",
+                            reply_markup=keyboard,
+                        )
+                        image_id = sent_message.photo[-1].file_id
+                    else:
+                        sent_message = await self.bot.send_message(
+                            chat_id=chat_id,
+                            text=f"{post.social_post}",
+                            parse_mode="Markdown",
+                            reply_markup=keyboard,
+                        )
+                    print(f"Message ID: {sent_message.message_id}")
+                    context.chat_data[sent_message.message_id] = {
+                        "article_id": article_id,
+                        "post_index": post_index,
+                    }
+                    return image_id
+                except Exception as e:
+                    print(e)
+                    await self.bot.send_message(
                         chat_id=chat_id,
-                        photo=image_to_use,
-                        caption=f"{post.social_post}",
-                        parse_mode="Markdown",
-                        reply_markup=keyboard,
+                        text="Something went wrong with sending the post.",
                     )
-                    image_id = sent_message.photo[-1].file_id
-                else:
-                    sent_message = await self.bot.send_message(
-                        chat_id=chat_id,
-                        text=f"{post.social_post}",
-                        parse_mode="Markdown",
-                        reply_markup=keyboard,
-                    )
-                print(f"Message ID: {sent_message.message_id}")
-                context.chat_data[sent_message.message_id] = {
-                    "article_id": article_id,
-                    "post_index": post_index,
-                }
-                return image_id
             else:
                 await self.bot.send_message(chat_id=chat_id, text="Post not found.")
         else:

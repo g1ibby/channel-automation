@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 import json
+from urllib.parse import urljoin
 
 import aiohttp
 import trafilatura
@@ -24,6 +25,7 @@ headers = {
     "Pragma": "no-cache",
     "Cache-Control": "no-cache",
 }
+base_url = "https://www.thephuketnews.com/"
 
 
 @retry(
@@ -58,7 +60,10 @@ def extract_main_image(html_content: bytes) -> Optional[str]:
     soup = BeautifulSoup(html_content, "html.parser")
     img_tag = soup.find("img", {"class": "img-fluid"})
     if img_tag and "src" in img_tag.attrs:
-        return img_tag["src"]
+        relative_url = img_tag["src"]
+        # Convert the relative URL to an absolute URL
+        absolute_url = urljoin(base_url, relative_url)
+        return absolute_url
     return None
 
 

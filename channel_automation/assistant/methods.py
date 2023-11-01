@@ -113,6 +113,9 @@ def get_completion(prompt, template):
 def parse_json_to_dataclass(json_text: str) -> PostData:
     # Escape newlines and tabs
     escaped_json_text = json_text.replace("\n", "\\n").replace("\t", "\\t")
+    # Remove the trailing '\\n' if it exists
+    if escaped_json_text.endswith("\\n"):
+        escaped_json_text = escaped_json_text[:-2]
     try:
         json_data = json.loads(escaped_json_text)
         return PostData(**json_data)
