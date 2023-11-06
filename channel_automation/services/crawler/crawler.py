@@ -77,8 +77,12 @@ class NewsCrawlerService:
             crawler = ThepattayaNewsCrawler()
         elif "thethaiger.com" in main_page:
             crawler = ThethaigerNewsCrawler()
-        elif "euronews.com" in main_page:
-            crawler = EuronewsTourismCrawler()
+        elif "https://www.euronews.com/tag/tourism" in main_page:
+            crawler = EuronewsTourismCrawler("https://www.euronews.com/tag/tourism")
+        elif "https://www.euronews.com/tag/digital-nomad" in main_page:
+            crawler = EuronewsTourismCrawler(
+                "https://www.euronews.com/tag/digital-nomad"
+            )
         elif "thephuketnews.com" in main_page:
             crawler = PhuketNewsCrawler()
         else:

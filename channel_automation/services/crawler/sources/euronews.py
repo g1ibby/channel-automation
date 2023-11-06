@@ -46,7 +46,8 @@ def extract_main_image(html_content: bytes) -> Optional[str]:
 
 
 class EuronewsTourismCrawler:
-    def __init__(self) -> None:
+    def __init__(self, base_url: str) -> None:
+        self.base_url = base_url
         self.filters: list[Callable[[str], bool]] = [
             lambda url: "/live-news/" not in url  # you can add more filters here
         ]
@@ -66,8 +67,7 @@ class EuronewsTourismCrawler:
     async def crawl_news_links(self) -> list[str]:
         filtered_news_links = []
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            url = "https://www.euronews.com/tag/tourism"
-            html_content = await fetch_url(session, url, headers)
+            html_content = await fetch_url(session, self.base_url, headers)
             news_links = self.extract_news_links(html_content)
             for url in news_links:
                 if all(filter_func(url) for filter_func in self.filters):
