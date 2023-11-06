@@ -8,6 +8,9 @@ from channel_automation.data_access.elasticsearch.methods import ESRepository
 from channel_automation.data_access.postgresql.methods import Repository
 from channel_automation.interfaces.bot_service_interface import ITelegramBotService
 from channel_automation.services.crawler.sources.bangkokpost import BangkokpostCrawler
+from channel_automation.services.crawler.sources.clubbingthailand import (
+    ClubbingThailandCrawler,
+)
 from channel_automation.services.crawler.sources.euronews import EuronewsTourismCrawler
 from channel_automation.services.crawler.sources.tatnews import TatnewsCrawler
 from channel_automation.services.crawler.sources.thepattayanews import (
@@ -85,6 +88,8 @@ class NewsCrawlerService:
             )
         elif "thephuketnews.com" in main_page:
             crawler = PhuketNewsCrawler()
+        elif "clubbingthailand.com" in main_page:
+            crawler = ClubbingThailandCrawler()
         else:
             print(f"Unknown source: {main_page}")
             return None
