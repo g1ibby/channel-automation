@@ -2,6 +2,7 @@ import json
 
 import openai
 
+from alembic.op import f
 from channel_automation.assistant.models import PostData
 from channel_automation.interfaces.assistant_interface import IAssistant
 from channel_automation.models import NewsArticle, Post
@@ -53,9 +54,31 @@ OUTPUT:
 {"social_post": "*Visa Policy Update* ⏺ Новое правительство Таиланда планирует увеличить срок безвизового пребывания российских туристов в стране с 30 до 90 дней.", "images_search": "thailand visa tourists"}
 """
 
+template3 = """
+You are an assistant responsible for creating social media posts based on event articles. Here are your tasks:
+
+1. Generate a social media post of approximately 100 words based on the event text I provide.
+  - **Title**: Each post should start with a title, which includes the date or time when the event happens, enclosed in asterisks for bold text in Telegram Markdown format (e.g., `*Title Here - Date/Time*`). Follow the title with two empty lines.
+  - **Language**: Preserve the original language of the event.
+  - **Tone**: Aim for a formal yet engaging tone. You may include emojis for emphasis.
+  - **Paragraphs**: For longer posts, break the text into paragraphs to enhance readability.
+  - **Details**: If the event text includes information about the price, time, or place, consider adding this at the end of the social post.
+  - **Format**: The post should be in Telegram Markdown format suitable for Telegram Messenger.
+
+2. Create an English-language Google search query to find appropriate images to accompany the social media post.
+
+Your answer will always be a single social post, and must always be in valid JSON format.
+
+EXAMPLES:
+
+OUTPUT:
+{"social_post": "*Republic Nightclub Pattaya presents Sam Collins - Saturday, November 11th!* Sam Collins – The masked Tech-house Virtuoso in the electronic music scene is coming to Republic Nightclub. Based in Amsterdam, his extraordinary masked appearance has captivated the world and music playlists with millions of streams and 350K of monthly Spotify listeners. Doors open at 9 PM. Tickets start at $30.", "images_search": "Sam Collins DJ event at Republic Nightclub Pattaya"}
+"""
+
 templates = {
     1: template1,
     2: template2,
+    3: template3,
 }
 
 template_fancier = """
@@ -131,8 +154,9 @@ class Assistant(IAssistant):
 
     def generate_post(self, news_article: NewsArticle, variation_number: int) -> Post:
         try:
+            article_text = f"{news_article.title}\n\n{news_article.text}"
             chosen_template = templates.get(variation_number, template1)
-            result_json = get_completion(news_article.text, chosen_template)
+            result_json = get_completion(article_text, chosen_template)
             post_data = parse_json_to_dataclass(result_json)
 
             return Post(

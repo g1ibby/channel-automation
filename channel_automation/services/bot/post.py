@@ -102,7 +102,12 @@ def create_variations_keyboard(
             InlineKeyboardButton(
                 "Variation Two", callback_data=f"variation_two:{article_id}"
             ),
-        ]
+        ],
+        [
+            InlineKeyboardButton(
+                "Variation Event", callback_data=f"variation_event:{article_id}"
+            ),
+        ],
     ]
     if back:
         keyboard_layout.append(
@@ -518,6 +523,12 @@ def register(app, bot, repo, es_repo, assistant, search, admin_chat_ids):
         CallbackQueryHandler(
             lambda update, context: logic.chosen_variation_callback(update, context, 2),
             pattern="^variation_two:",
+        )
+    )
+    app.add_handler(
+        CallbackQueryHandler(
+            lambda update, context: logic.chosen_variation_callback(update, context, 3),
+            pattern="^variation_event:",
         )
     )
     app.add_handler(
