@@ -1687,17 +1687,17 @@ wandb = ["numpy", "openpyxl (>=3.0.7)", "pandas (>=1.2.3)", "pandas-stubs (>=1.1
 
 [[package]]
 name = "openaiauth"
-version = "0.3.2"
+version = "3.0.0"
 description = "OpenAI Authentication Reverse Engineered"
 optional = false
 python-versions = "*"
 files = [
-    {file = "OpenAIAuth-0.3.2-py3-none-any.whl", hash = "sha256:9947eff587a152d5adadc9f59cfb2ca0ecde71815445f0e251a137c4d458ed79"},
-    {file = "OpenAIAuth-0.3.2.tar.gz", hash = "sha256:08f701806bf144eebbec474f23794db495e4096ede97a37a37619e683a390295"},
+    {file = "OpenAIAuth-3.0.0-py3-none-any.whl", hash = "sha256:a013dac29099f1000c457e953d8319d5d21186228864290786f2ed386c2500d6"},
+    {file = "OpenAIAuth-3.0.0.tar.gz", hash = "sha256:f52ae9b6285e88ce6cf5823a1edebc6a10c630500359f050800594058dc4109f"},
 ]
 
 [package.dependencies]
-requests = "*"
+tls-client = "*"
 
 [[package]]
 name = "packaging"
@@ -1827,6 +1827,7 @@ files = [
     {file = "psycopg2_binary-2.9.9-cp311-cp311-win32.whl", hash = "sha256:dc4926288b2a3e9fd7b50dc6a1909a13bbdadfc67d93f3374d984e56f885579d"},
     {file = "psycopg2_binary-2.9.9-cp311-cp311-win_amd64.whl", hash = "sha256:b76bedd166805480ab069612119ea636f5ab8f8771e640ae103e05a4aae3e417"},
     {file = "psycopg2_binary-2.9.9-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:8532fd6e6e2dc57bcb3bc90b079c60de896d2128c5d9d6f24a63875a95a088cf"},
+    {file = "psycopg2_binary-2.9.9-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:b0605eaed3eb239e87df0d5e3c6489daae3f7388d455d0c0b4df899519c6a38d"},
     {file = "psycopg2_binary-2.9.9-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8f8544b092a29a6ddd72f3556a9fcf249ec412e10ad28be6a0c0d948924f2212"},
     {file = "psycopg2_binary-2.9.9-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:2d423c8d8a3c82d08fe8af900ad5b613ce3632a1249fd6a223941d0735fce493"},
     {file = "psycopg2_binary-2.9.9-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:2e5afae772c00980525f6d6ecf7cbca55676296b580c0e6abb407f15f3706996"},
@@ -2330,24 +2331,23 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "revchatgpt"
-version = "3.3.5"
+version = "6.8.6"
 description = "ChatGPT is a reverse engineering of OpenAI's ChatGPT API"
 optional = false
 python-versions = "*"
 files = [
-    {file = "revChatGPT-3.3.5-py3-none-any.whl", hash = "sha256:ef00537761cd20b639e66d2c1d05320ed7186f36f6df4645ab18ec3f88716f00"},
-    {file = "revChatGPT-3.3.5.tar.gz", hash = "sha256:a8e05764034376a5498f1a00393862d1cad5eccc844a64da82ed4bc7ca39c13a"},
+    {file = "revChatGPT-6.8.6-py3-none-any.whl", hash = "sha256:ee215d4cc6383d499e8bd761fe6de80570cdee21db52b1e2f218f355576b5621"},
+    {file = "revChatGPT-6.8.6.tar.gz", hash = "sha256:69e7fa02d318548099dcb6bdffb4fa788dcd12c1816f09a5716c44bf10e44ac9"},
 ]
 
 [package.dependencies]
 httpx = {version = "*", extras = ["socks"]}
-OpenAIAuth = "0.3.2"
+openai = "*"
+OpenAIAuth = ">=3.0.0"
 prompt-toolkit = "*"
 requests = {version = "*", extras = ["socks"]}
+rich = "*"
 tiktoken = ">=0.3.0"
-
-[package.extras]
-webgpt = ["duckduckgo-search"]
 
 [[package]]
 name = "rich"
@@ -2753,6 +2753,17 @@ files = [
 ]
 
 [[package]]
+name = "tls-client"
+version = "0.2.2"
+description = "Advanced Python HTTP Client."
+optional = false
+python-versions = "*"
+files = [
+    {file = "tls_client-0.2.2-py3-none-any.whl", hash = "sha256:30934871397cdad6862e00b5634f382666314a452ddd3d774e18323a0ad9b765"},
+    {file = "tls_client-0.2.2.tar.gz", hash = "sha256:78bc0e291e3aadc6c5e903b62bb26c01374577691f2a9e5e17899900a5927a13"},
+]
+
+[[package]]
 name = "tokenize-rt"
 version = "4.2.1"
 description = "A wrapper around the stdlib `tokenize` which roundtrips."
@@ -3115,4 +3126,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "b081522895d8e9d9392feb945febedf4bed23663f1dd98bcb160b2176c16b069"
+content-hash = "342543541586bc15978f7793a237ca23df35fba8a42e6823131380992e529cce"
