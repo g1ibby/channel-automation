@@ -11,6 +11,7 @@ from channel_automation.services.crawler.sources.bangkokpost import BangkokpostC
 from channel_automation.services.crawler.sources.clubbingthailand import (
     ClubbingThailandCrawler,
 )
+from channel_automation.services.crawler.sources.cnn import CNNTravelNewsCrawler
 from channel_automation.services.crawler.sources.euronews import EuronewsTourismCrawler
 from channel_automation.services.crawler.sources.tatnews import TatnewsCrawler
 from channel_automation.services.crawler.sources.thepattayanews import (
@@ -90,6 +91,8 @@ class NewsCrawlerService:
             crawler = PhuketNewsCrawler()
         elif "clubbingthailand.com" in main_page:
             crawler = ClubbingThailandCrawler()
+        elif "https://edition.cnn.com/travel/news" in main_page:
+            crawler = CNNTravelNewsCrawler()
         else:
             print(f"Unknown source: {main_page}")
             return None
