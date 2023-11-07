@@ -52,6 +52,7 @@ pydantic = "^1.8.2"
 pytz = "^2023.3.post1"
 tenacity = "^8.2.3"
 pytest-asyncio = "^0.21.1"
+brotli = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.1"

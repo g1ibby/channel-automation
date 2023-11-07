@@ -7,10 +7,10 @@ from channel_automation.services.crawler.sources.tatnews import (
 
 @pytest.mark.asyncio
 async def test_tatnews_crawler():
-    crawler = TatnewsCrawler()
-    articles = await crawler.crawl()
-    assert len(articles) > 1  # Ensure more than one news article is returned
+    async with TatnewsCrawler() as crawler:
+        articles = await crawler.crawl()
+        assert len(articles) > 1  # Ensure more than one news article is returned
 
-    for article in articles:
-        assert article.title  # Check that title exists
-        assert article.text  # Check that text exists
+        for article in articles:
+            assert article.title  # Check that title exists
+            assert article.text  # Check that text exists

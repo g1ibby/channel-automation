@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Optional
 
 import asyncio
 import json
@@ -63,7 +63,6 @@ class BaseWebCrawler(ABC):
         """
         Fetches the base URL and extracts a list of news links applying filters.
         """
-
         html_content = await self.fetch(self.base_url)
         news_links = self.extract_news_links(html_content)
         return [
