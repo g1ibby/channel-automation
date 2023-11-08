@@ -23,6 +23,7 @@ from channel_automation.services.crawler.sources.thethaiger import ThethaigerNew
 from channel_automation.services.crawler.sources.tourismthailand import (
     TourismthailandCrawler,
 )
+from channel_automation.services.crawler.sources.tourprom import TourpromNewsCrawler
 
 # Initialize logging
 logging.basicConfig()
@@ -94,6 +95,12 @@ class NewsCrawlerService:
             ),
             "https://ria.ru/location_Thailand": lambda: RiaNewsCrawler(
                 "https://ria.ru/location_Thailand/"
+            ),
+            "https://www.tourprom.ru/news": lambda: TourpromNewsCrawler(
+                "https://www.tourprom.ru/news/"
+            ),
+            "https://www.tourprom.ru/news/news-turkey": lambda: TourpromNewsCrawler(
+                "https://www.tourprom.ru/news/news-turkey/"
             ),
         }
 
