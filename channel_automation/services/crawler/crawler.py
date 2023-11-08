@@ -13,6 +13,7 @@ from channel_automation.services.crawler.sources.clubbingthailand import (
 )
 from channel_automation.services.crawler.sources.cnn import CNNTravelNewsCrawler
 from channel_automation.services.crawler.sources.euronews import EuronewsTourismCrawler
+from channel_automation.services.crawler.sources.ria import RiaNewsCrawler
 from channel_automation.services.crawler.sources.tatnews import TatnewsCrawler
 from channel_automation.services.crawler.sources.thepattayanews import (
     ThepattayaNewsCrawler,
@@ -88,6 +89,7 @@ class NewsCrawlerService:
             "thephuketnews.com": PhuketNewsCrawler,
             "clubbingthailand.com": ClubbingThailandCrawler,
             "https://edition.cnn.com/travel/news": CNNTravelNewsCrawler,
+            "https://ria.ru/tourism_news": RiaNewsCrawler,
         }
 
         # Find the appropriate crawler class based on the main_page URL
