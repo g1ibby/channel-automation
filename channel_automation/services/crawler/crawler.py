@@ -13,6 +13,9 @@ from channel_automation.services.crawler.sources.clubbingthailand import (
 )
 from channel_automation.services.crawler.sources.cnn import CNNTravelNewsCrawler
 from channel_automation.services.crawler.sources.euronews import EuronewsTourismCrawler
+from channel_automation.services.crawler.sources.pattayapeople import (
+    PattayaPeopleNewsCrawler,
+)
 from channel_automation.services.crawler.sources.ria import RiaNewsCrawler
 from channel_automation.services.crawler.sources.tatnews import TatnewsCrawler
 from channel_automation.services.crawler.sources.thepattayanews import (
@@ -102,6 +105,7 @@ class NewsCrawlerService:
             "https://www.tourprom.ru/news/news-turkey": lambda: TourpromNewsCrawler(
                 "https://www.tourprom.ru/news/news-turkey/"
             ),
+            "https://pattayapeople.ru/news": PattayaPeopleNewsCrawler,
         }
 
         # Find the appropriate crawler class based on the main_page URL
