@@ -80,6 +80,7 @@ services:
     image: datadog/agent:latest
     environment:
       DD_API_KEY: "3f02877831d50ff530810930faeb79ae"
+      DD_HOSTNAME: "ca_stage"
       DD_SITE: "datadoghq.com" # Change to datadoghq.eu if you are in the EU
       DD_LOGS_ENABLED: "true"
       DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "true"
