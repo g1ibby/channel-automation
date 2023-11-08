@@ -21,7 +21,6 @@ async def test_extract_content():
     async with ThepattayaNewsCrawler() as crawler:
         url = "https://thepattayanews.com/2023/10/02/so-called-activist-k-100-million-creates-chaos-on-pattayas-sukhumvit-road/"
         article = await crawler.extract_content(url)
-        print(article)
 
         assert article is not None  # Check that an article is returned
         assert article.title  # Check that the title exists

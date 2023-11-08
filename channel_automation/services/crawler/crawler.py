@@ -70,39 +70,43 @@ class NewsCrawlerService:
     async def crawl_and_extract_news_articles(self, main_page: str):
         print(f"Crawling and extracting articles from {main_page}")
         extracted_articles = []
+        crawler_class = None
 
-        if "bangkokpost.com" in main_page:
-            crawler = BangkokpostCrawler()
-        elif "tatnews.org" in main_page:
-            crawler = TatnewsCrawler()
-        elif "tourismthailand.org" in main_page:
-            crawler = TourismthailandCrawler()
-        elif "thepattayanews.com" in main_page:
-            crawler = ThepattayaNewsCrawler()
-        elif "thethaiger.com" in main_page:
-            crawler = ThethaigerNewsCrawler()
-        elif "https://www.euronews.com/tag/tourism" in main_page:
-            crawler = EuronewsTourismCrawler("https://www.euronews.com/tag/tourism")
-        elif "https://www.euronews.com/tag/digital-nomad" in main_page:
-            crawler = EuronewsTourismCrawler(
+        # Map domain names to crawler classes
+        crawler_map = {
+            "bangkokpost.com": BangkokpostCrawler,
+            "tatnews.org": TatnewsCrawler,
+            "tourismthailand.org": TourismthailandCrawler,
+            "thepattayanews.com": ThepattayaNewsCrawler,
+            "thethaiger.com": ThethaigerNewsCrawler,
+            "https://www.euronews.com/tag/tourism": lambda: EuronewsTourismCrawler(
+                "https://www.euronews.com/tag/tourism"
+            ),
+            "https://www.euronews.com/tag/digital-nomad": lambda: EuronewsTourismCrawler(
                 "https://www.euronews.com/tag/digital-nomad"
-            )
-        elif "thephuketnews.com" in main_page:
-            crawler = PhuketNewsCrawler()
-        elif "clubbingthailand.com" in main_page:
-            crawler = ClubbingThailandCrawler()
-        elif "https://edition.cnn.com/travel/news" in main_page:
-            crawler = CNNTravelNewsCrawler()
-        else:
+            ),
+            "thephuketnews.com": PhuketNewsCrawler,
+            "clubbingthailand.com": ClubbingThailandCrawler,
+            "https://edition.cnn.com/travel/news": CNNTravelNewsCrawler,
+        }
+
+        # Find the appropriate crawler class based on the main_page URL
+        for domain, crawler_cls in crawler_map.items():
+            if domain in main_page:
+                crawler_class = crawler_cls
+                break
+
+        if crawler_class is None:
             print(f"Unknown source: {main_page}")
             return None
 
-        extracted_articles = await crawler.crawl()
-        for article in extracted_articles:
-            a = self.news_article_repository.save_news_article(article)
-            if a is not None:
-                await self.bot_service.send_article_to_admin(article)
-        return None
+        # Use the crawler class with an async context manager
+        async with crawler_class() as crawler:
+            extracted_articles = await crawler.crawl()
+            for article in extracted_articles:
+                a = self.news_article_repository.save_news_article(article)
+                if a is not None:
+                    await self.bot_service.send_article_to_admin(article)
 
     async def refresh_sources(self):
         print("Refreshing sources...")
