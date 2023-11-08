@@ -6,6 +6,7 @@ import traceback
 from telegram import Bot
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, ContextTypes
+from telegram.utils.request import Request
 
 from channel_automation.interfaces.assistant_interface import IAssistant
 from channel_automation.interfaces.bot_service_interface import ITelegramBotService
@@ -40,7 +41,8 @@ class TelegramBotService(ITelegramBotService):
         self.assistant = assistant
         self.search = search
         self.admin_chat_ids = [admin.user_id for admin in self.repo.get_active_admins()]
-        self.bot = Bot(token=self.token)
+        request = Request(con_pool_size=8, connect_timeout=10.0)
+        self.bot = Bot(token=self.token, request=request)
 
     def run(self) -> None:
         app = ApplicationBuilder().token(self.token).build()
