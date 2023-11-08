@@ -89,7 +89,12 @@ class NewsCrawlerService:
             "thephuketnews.com": PhuketNewsCrawler,
             "clubbingthailand.com": ClubbingThailandCrawler,
             "https://edition.cnn.com/travel/news": CNNTravelNewsCrawler,
-            "https://ria.ru/tourism_news": RiaNewsCrawler,
+            "https://ria.ru/tourism_news": lambda: RiaNewsCrawler(
+                "https://ria.ru/tourism_news/"
+            ),
+            "https://ria.ru/location_Thailand": lambda: RiaNewsCrawler(
+                "https://ria.ru/location_Thailand/"
+            ),
         }
 
         # Find the appropriate crawler class based on the main_page URL

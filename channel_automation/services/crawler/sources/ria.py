@@ -6,8 +6,8 @@ from .base_web_crawler import BaseWebCrawler
 
 
 class RiaNewsCrawler(BaseWebCrawler):
-    def __init__(self) -> None:
-        super().__init__("https://ria.ru/tourism_news/")
+    def __init__(self, base_url: str) -> None:
+        super().__init__(base_url)
 
     def extract_news_links(self, html_content: Optional[str]) -> list[str]:
         if not html_content:
