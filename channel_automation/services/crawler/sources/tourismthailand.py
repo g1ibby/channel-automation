@@ -53,13 +53,14 @@ class TourismthailandCrawler(BaseWebCrawler):
             for announcement in parsed_json.get("result", [])
         ]
 
-    async def crawl(self) -> list[NewsArticle]:
+    async def crawl(self) -> list[str]:
+        class_name = self.__class__.__name__
         data1 = await self.get_tourismthailand_breaking_news_links()
         data2 = await self.get_tourismthailand_announcement_links()
 
-        print(f"Found {len(data1)} breaking news articles")
-        print(f"Found {len(data2)} announcement articles")
-        return await self.extract_articles(data1 + data2)
+        print(f"Found {len(data1)} breaking news articles for {class_name}")
+        print(f"Found {len(data2)} announcement articles for {class_name}")
+        return data1 + data2
 
     def extract_news_links(self, html_content: Optional[str]) -> list[str]:
         return []

@@ -49,15 +49,15 @@ class BaseWebCrawler(ABC):
         """
         await self.session.close()
 
-    async def crawl(self) -> list[NewsArticle]:
+    async def crawl(self) -> list[str]:
         """
-        Crawls for news articles and returns a list of NewsArticle objects.
+        Crawls for news articles and returns a list of URLs on news articles.
         """
         class_name = self.__class__.__name__
         print(f"Crawling {class_name}")
         news_links = await self.crawl_news_links()
-        print(f"Found {len(news_links)} news articles")
-        return await self.extract_articles(news_links)
+        print(f"Found {len(news_links)} news articles using {class_name}")
+        return news_links
 
     async def crawl_news_links(self) -> list[str]:
         """

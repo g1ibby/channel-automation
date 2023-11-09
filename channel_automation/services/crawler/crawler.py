@@ -62,12 +62,12 @@ class NewsCrawlerService:
         self.scheduler.add_job(
             self.crawl_and_extract_news_articles,
             "interval",
-            hours=6,
+            minutes=10,
             args=[url],
             next_run_time=datetime.datetime.now() + datetime.timedelta(seconds=10),
             coalesce=True,
-            max_instances=6,
-            misfire_grace_time=20,
+            max_instances=12,
+            misfire_grace_time=300,
         )
 
         print(f"Scheduled crawling for {url}")
@@ -120,11 +120,17 @@ class NewsCrawlerService:
 
         # Use the crawler class with an async context manager
         async with crawler_class() as crawler:
-            extracted_articles = await crawler.crawl()
+            articles_urls = await crawler.crawl()
+            new_urls = [
+                url
+                for url in articles_urls
+                if not self.news_article_repository.article_exists(url)
+            ]
+            print(f"Found {len(new_urls)} new articles that don't exist in ES")
+            extracted_articles = await crawler.extract_articles(new_urls)
             for article in extracted_articles:
-                a = self.news_article_repository.save_news_article(article)
-                if a is not None:
-                    await self.bot_service.send_article_to_admin(article)
+                self.news_article_repository.save_news_article(article)
+                await self.bot_service.send_article_to_admin(article)
 
     async def refresh_sources(self):
         print("Refreshing sources...")
