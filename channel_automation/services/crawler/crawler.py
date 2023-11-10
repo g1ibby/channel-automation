@@ -121,13 +121,11 @@ class NewsCrawlerService:
         # Use the crawler class with an async context manager
         async with crawler_class() as crawler:
             articles_urls = await crawler.crawl()
-            new_urls = [
-                url
-                for url in articles_urls
-                if not self.news_article_repository.article_exists(url)
-            ]
+            new_urls = []
+            for url in articles_urls:
+                if not self.news_article_repository.article_exists(url):
+                    new_urls.append(url)
             print(f"Found {len(new_urls)} new articles that don't exist in ES")
-            print(new_urls)
             extracted_articles = await crawler.extract_articles(new_urls)
             for article in extracted_articles:
                 self.news_article_repository.save_news_article(article)

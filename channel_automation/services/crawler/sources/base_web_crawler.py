@@ -3,6 +3,7 @@ from typing import Callable, Optional
 import asyncio
 import json
 from abc import ABC, abstractmethod
+from urllib.parse import urlparse
 
 import aiohttp
 import trafilatura
@@ -56,11 +57,15 @@ class BaseWebCrawler(ABC):
         class_name = self.__class__.__name__
         print(f"Crawling {class_name}")
         news_links = await self.crawl_news_links()
-        unique_news_links = list(
-            set(news_links)
-        )  # Remove duplicates by converting to a set and back to a list
+        cleaned_news_links = [self.clean_link(url) for url in news_links]
+        unique_news_links = list(set(cleaned_news_links))  # Remove duplicates
         print(f"Found {len(unique_news_links)} unique news articles using {class_name}")
         return unique_news_links
+
+    def clean_link(self, url: str) -> str:
+        parsed_url = urlparse(url)
+        clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+        return clean_url
 
     async def crawl_news_links(self) -> list[str]:
         """
@@ -106,16 +111,25 @@ class BaseWebCrawler(ABC):
         Can run in parallel or sequential mode based on the 'parallel' flag.
         """
         if parallel:
-            tasks = [self.extract_content(link) for link in news_links]
+            tasks = [self._create_extract_task(link) for link in news_links]
             articles = await asyncio.gather(*tasks)
         else:
             articles = []
             for link in news_links:
                 article = await self.extract_content(link)
+                article.source = link
                 articles.append(article)
 
         # Filter out None values in case some articles failed to be fetched or extracted
         return [article for article in articles if article]
+
+    async def _create_extract_task(self, link: str):
+        """
+        A helper coroutine that extracts content and sets the source on the article.
+        """
+        article = await self.extract_content(link)
+        article.source = link
+        return article
 
     async def extract_content(self, url: str) -> Optional[NewsArticle]:
         """

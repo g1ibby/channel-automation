@@ -24,6 +24,9 @@ class CNNTravelNewsCrawler(BaseWebCrawler):
         )
         for link in articles:
             full_link = urljoin(self.BASE_URL, link["href"])
+            # Check if the URL ends with '/index.html' and remove it
+            # if full_link.endswith('/index.html'):
+            #     full_link = full_link[:-len('/index.html')]
             links.append(full_link)
         return links
 

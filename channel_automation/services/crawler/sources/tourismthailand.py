@@ -53,16 +53,11 @@ class TourismthailandCrawler(BaseWebCrawler):
             for announcement in parsed_json.get("result", [])
         ]
 
-    async def crawl(self) -> list[str]:
-        class_name = self.__class__.__name__
+    async def crawl_news_links(self) -> list[str]:
         data1 = await self.get_tourismthailand_breaking_news_links()
         data2 = await self.get_tourismthailand_announcement_links()
 
-        unique_news_links = list(
-            set(data1 + data2)
-        )  # Remove duplicates by converting to a set and back to a list
-        print(f"Found {len(unique_news_links)} unique news articles using {class_name}")
-        return unique_news_links
+        return data1 + data2
 
     def extract_news_links(self, html_content: Optional[str]) -> list[str]:
         return []
