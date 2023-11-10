@@ -127,6 +127,7 @@ class NewsCrawlerService:
                 if not self.news_article_repository.article_exists(url)
             ]
             print(f"Found {len(new_urls)} new articles that don't exist in ES")
+            print(new_urls)
             extracted_articles = await crawler.extract_articles(new_urls)
             for article in extracted_articles:
                 self.news_article_repository.save_news_article(article)

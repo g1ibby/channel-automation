@@ -56,8 +56,11 @@ class BaseWebCrawler(ABC):
         class_name = self.__class__.__name__
         print(f"Crawling {class_name}")
         news_links = await self.crawl_news_links()
-        print(f"Found {len(news_links)} news articles using {class_name}")
-        return news_links
+        unique_news_links = list(
+            set(news_links)
+        )  # Remove duplicates by converting to a set and back to a list
+        print(f"Found {len(unique_news_links)} unique news articles using {class_name}")
+        return unique_news_links
 
     async def crawl_news_links(self) -> list[str]:
         """

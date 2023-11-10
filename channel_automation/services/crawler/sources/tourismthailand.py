@@ -58,9 +58,11 @@ class TourismthailandCrawler(BaseWebCrawler):
         data1 = await self.get_tourismthailand_breaking_news_links()
         data2 = await self.get_tourismthailand_announcement_links()
 
-        print(f"Found {len(data1)} breaking news articles for {class_name}")
-        print(f"Found {len(data2)} announcement articles for {class_name}")
-        return data1 + data2
+        unique_news_links = list(
+            set(data1 + data2)
+        )  # Remove duplicates by converting to a set and back to a list
+        print(f"Found {len(unique_news_links)} unique news articles using {class_name}")
+        return unique_news_links
 
     def extract_news_links(self, html_content: Optional[str]) -> list[str]:
         return []
