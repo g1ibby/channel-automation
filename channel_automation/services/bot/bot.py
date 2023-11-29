@@ -41,7 +41,7 @@ class TelegramBotService(ITelegramBotService):
         self.assistant = assistant
         self.search = search
         self.admin_chat_ids = [admin.user_id for admin in self.repo.get_active_admins()]
-        request = HTTPXRequest(connection_pool_size=20, connect_timeout=20.0)
+        request = HTTPXRequest(connection_pool_size=50, connect_timeout=80.0)
         self.bot = Bot(token=self.token, request=request)
 
     def run(self) -> None:
